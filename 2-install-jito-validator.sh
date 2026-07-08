@@ -28,14 +28,14 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.0.0"
+DEFAULT_SOLANA_VERSION="v4.1.1"
 
 # Yellowstone artifacts
 # v13.1.0 is the latest non-Triton Yellowstone gRPC release for the Solana 4.0 line.
-YELLOWSTONE_RELEASE_TAG="v13.1.0+solana.4.0.0-rc.0"
-YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v13.1.0%2Bsolana.4.0.0-rc.0"
+YELLOWSTONE_RELEASE_TAG="v14.1.0+solana.4.1.0"
+YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v14.1.0%2Bsolana.4.1.0"
 YELLOWSTONE_GEYSER_SO_URL="$YELLOWSTONE_RELEASE_URL/libyellowstone_grpc_geyser.so"
-YELLOWSTONE_GEYSER_SO_SHA256="5c0a1ef52da813850f315457bd2db506f38cf83ba02b9c5a433c11a1c85b980e"
+YELLOWSTONE_GEYSER_SO_SHA256="f15b654c930963016c5ace2052a72acca5bb64b2e8a630fcf15dbd41ca579eda"
 YELLOWSTONE_GEYSER_DIR="$BIN/yellowstone-grpc-geyser-release"
 YELLOWSTONE_GEYSER_LIB_DIR="$YELLOWSTONE_GEYSER_DIR/lib"
 YELLOWSTONE_GEYSER_LIB="$YELLOWSTONE_GEYSER_LIB_DIR/libyellowstone_grpc_geyser.so"
