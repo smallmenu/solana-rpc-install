@@ -5,7 +5,7 @@
     },
     "grpc": {
         "address": "0.0.0.0:10001",
-        "x_token": "Smallmenu",
+        "x_token": "",
         "compression": {
             "accept": [
                 "gzip",
@@ -16,7 +16,7 @@
                 "zstd"
             ]
         },
-        "max_decoding_message_size": "268_435_456",
+        "max_decoding_message_size": "536_870_912",
         "snapshot_plugin_channel_capacity": null,
         "snapshot_client_channel_capacity": "50_000_000",
         "channel_capacity": "2_000_000",
