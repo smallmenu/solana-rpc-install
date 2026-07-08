@@ -331,8 +331,8 @@ echo ""
 echo "==> 9) $M_STEP9"
 ufw --force enable
 ufw allow 22
-ufw allow 8000:8025/tcp
-ufw allow 8000:8025/udp
+ufw allow 8000:8026/tcp
+ufw allow 8000:8026/udp
 ufw allow 8899   # HTTP
 ufw allow 8900   # WS
 ufw allow 10900  # GRPC

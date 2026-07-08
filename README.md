@@ -225,7 +225,7 @@ All configurations are based on **proven production deployments** with thousands
 | **8899** | HTTP | RPC endpoint |
 | **8900** | WebSocket | Real-time subscriptions |
 | **10900** | gRPC | High-performance data streaming |
-| **8000-8025** | TCP/UDP | Validator communication (dynamic) |
+| **8000-8026** | TCP/UDP | Validator communication (dynamic) |
 
 ## 📈 Performance Metrics
 

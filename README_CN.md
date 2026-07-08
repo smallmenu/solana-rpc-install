@@ -225,7 +225,7 @@ bash /root/performance-monitor.sh snapshot
 | **8899** | HTTP | RPC 端点 |
 | **8900** | WebSocket | 实时订阅 |
 | **10900** | gRPC | 高性能数据流 |
-| **8000-8025** | TCP/UDP | 验证者通信 (动态) |
+| **8000-8026** | TCP/UDP | 验证者通信 (动态) |
 
 ## 📈 性能指标
 
