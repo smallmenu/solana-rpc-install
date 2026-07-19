@@ -222,6 +222,7 @@ for dir in "${dirs[@]}"; do
     mkdir -p "$dir"
   fi
 done
+mkdir -p "$ACCOUNTS/accounts_index"
 echo "  ✅ $M_OLD_CLEANED"
 
 echo ""
