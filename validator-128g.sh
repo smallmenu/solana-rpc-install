@@ -41,6 +41,7 @@ exec $VALIDATOR_CMD \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --ledger /root/sol/ledger \
  --accounts /root/sol/accounts \
+ --accounts-index-path /root/sol/accounts/accounts_index \
  --identity /root/sol/bin/validator-keypair.json \
  --snapshots /root/sol/snapshot \
  --log /root/solana-rpc.log \
@@ -59,13 +60,13 @@ exec $VALIDATOR_CMD \
  --dynamic-port-range 8000-8026 --gossip-port 8000 \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
  --full-rpc-api --private-rpc --rpc-threads 8 \
- --rpc-max-multiple-accounts 50 \
+ --rpc-max-multiple-accounts 1000 \
  --rpc-max-request-body-size 20971520 \
  --rpc-bigtable-timeout 180 --rpc-send-retry-ms 1000 \
  --account-index program-id \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --no-incremental-snapshots \
- --maximum-full-snapshots-to-retain 2 \
+ --maximum-full-snapshots-to-retain 1 \
  --maximum-incremental-snapshots-to-retain 2 \
  --minimal-snapshot-download-speed 10485760 \
  --use-snapshot-archives-at-startup when-newest \
@@ -75,7 +76,7 @@ exec $VALIDATOR_CMD \
  --enable-accounts-disk-index \
  --accounts-db-access-storages-method file \
  --accounts-db-cache-limit-mb 8192 \
- --accounts-index-scan-results-limit-mb 256 \
+ --accounts-index-scan-results-limit-mb 8192 \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
  --block-production-method central-scheduler \
  --health-check-slot-distance 150 \
