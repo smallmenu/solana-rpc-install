@@ -9,6 +9,7 @@
 - `3-start.sh` 用于清理旧的 `ledger/accounts/snapshot`，重新下载快照并启动节点。
 - 本项目运维策略是：较大升级或重启后，优先重新拉快照启动，避免从旧 ledger 长时间追块但追不上。
 - Yellowstone gRPC 的 `libyellowstone_grpc_geyser.so` 需要和 Solana/Agave/Jito Solana 版本线匹配，不能只升级 validator 而继续使用旧版本 geyser 插件。
+- 当前生产环境的 Yellowstone 插件由 `yellowstone-grpc` 生产分支自行构建。安装脚本中的官方 release 下载逻辑只作为备用路径，不代表生产插件的实际来源。
 
 ## 升级前确认
 
@@ -16,9 +17,9 @@
 
 - 目标 Jito Solana tag，例如 `v4.1.1-jito`。
 - 输入脚本时使用的版本号，例如 `v4.1.1`，不要带 `-jito` 后缀。
-- 对应 Yellowstone gRPC release tag。
-- 对应 `libyellowstone_grpc_geyser.so` 下载地址。
-- 对应 `libyellowstone_grpc_geyser.so` SHA256。
+- 对应 Yellowstone gRPC upstream tag、生产分支和准确 commit。
+- 自行构建后的 `libyellowstone_grpc_geyser.so` SHA256，以及实际部署路径。
+- 如果临时改用官方 release 备用路径，再确认 release tag、下载地址和官方 SHA256。
 - 是否存在启动参数变更、废弃参数或新增必需参数。
 - 是否存在快照格式、ledger、accounts db 或 geyser ABI 相关变更。
 
@@ -207,11 +208,14 @@ bash 3-start.sh
 
 ## 本次升级：v4.1.1-jito
 
+> 当前生产环境的 Yellowstone 插件不是直接使用下面的官方 release 二进制，而是使用 `yellowstone-grpc` 仓库生产分支自行构建的产物。下面的官方 release 信息仅对应 `2-install-jito-validator.sh` 保留的备用下载路径。
+
 本次目标：
 
 - Jito Solana: `v4.1.1-jito`
 - 脚本输入版本: `v4.1.1`
-- Yellowstone gRPC: `v14.1.0+solana.4.1.0`
+- Yellowstone gRPC upstream 基线: `v14.1.0+solana.4.1.0`
+- Yellowstone gRPC 生产构建分支: `sm-v14.1.0-v4.1.0`
 - Geyser 插件: `libyellowstone_grpc_geyser.so`
 
 Yellowstone gRPC 下载地址：
@@ -223,7 +227,7 @@ https://github.com/rpcpool/yellowstone-grpc/releases/download/v14.1.0%2Bsolana.4
 SHA256：
 
 ```text
-f15b654c930963016c5ace2052a72acca5bb64b2e8a630fcf15dbd41ca579eda
+bba41a1c022ee230efc170bd7ffa8046964c7e38417c9444bfdea3e4c4513d45
 ```
 
 本次需要把 `2-install-jito-validator.sh` 中的相关配置改成：
@@ -234,8 +238,10 @@ DEFAULT_SOLANA_VERSION="v4.1.1"
 YELLOWSTONE_RELEASE_TAG="v14.1.0+solana.4.1.0"
 YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v14.1.0%2Bsolana.4.1.0"
 YELLOWSTONE_GEYSER_SO_URL="$YELLOWSTONE_RELEASE_URL/libyellowstone_grpc_geyser.so"
-YELLOWSTONE_GEYSER_SO_SHA256="f15b654c930963016c5ace2052a72acca5bb64b2e8a630fcf15dbd41ca579eda"
+YELLOWSTONE_GEYSER_SO_SHA256="bba41a1c022ee230efc170bd7ffa8046964c7e38417c9444bfdea3e4c4513d45"
 ```
+
+上面的 SHA256 是官方 `v14.1.0+solana.4.1.0` release 资产当前的校验值。生产自构建产物必须在每次构建后重新执行 `sha256sum`，不能复用该值。
 
 执行顺序：
 
@@ -258,4 +264,4 @@ sha256sum /root/sol/bin/yellowstone-grpc-geyser-release/lib/libyellowstone_grpc_
 bash 3-start.sh
 ```
 
-截至 2026-07-08，rpcpool/yellowstone-grpc release 列表中没有单独的 `solana.4.1.1` release，因此本次使用同一 4.1 版本线的 `v14.1.0+solana.4.1.0`。
+截至本次记录，生产环境以 `v14.1.0+solana.4.1.0` 为 upstream 基线，在 `sm-v14.1.0-v4.1.0` 分支保留生产定制并自行构建。官方 release 二进制只作为备用路径。

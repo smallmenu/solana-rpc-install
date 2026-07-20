@@ -2,6 +2,8 @@
 
 本文说明本项目中的 `yellowstone-config.json` 配置项含义、常见修改方式和运维注意事项。
 
+当前生产环境使用 `yellowstone-grpc` 生产分支自行构建的 `libyellowstone_grpc_geyser.so`。本文配置值以仓库当前模板为准；安装脚本下载的官方 release 二进制只作为备用路径。
+
 ## 文件位置
 
 仓库中的模板文件：
@@ -119,16 +121,16 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 
 ### grpc 源码默认值总览
 
-| 字段 | 源码默认值 | 本项目模板/建议值 | 说明 |
+| 字段 | 源码默认值 | 当前模板值 / 生产建议 | 说明 |
 |------|------------|-------------------|------|
-| `address` | `null` / 未设置 | 当前模板端口或建议统一为 `0.0.0.0:10900` | 旧式监听字段，upstream README 已建议新配置使用 `listen`；端口必须和 UFW/安全组一致。 |
+| `address` | `null` / 未设置 | 当前模板 `0.0.0.0:10001` | 旧式监听字段，upstream README 已建议新配置使用 `listen`；端口必须和 UFW、安全组及客户端一致。 |
 | `listen` | `null` | 可选 | 新式监听配置，支持多个地址、TLS 和 per-listener auth。 |
 | `tls_config` | `null` | 通常不设置 | 旧式 TLS 配置，upstream README 建议用 `listen[].tls`。 |
 | `cert_dir` | `null` | 通常不设置 | TLS 证书目录。 |
-| `x_token` | `null` | 建议强随机 token | 不设置时没有这个简单 token 校验。 |
+| `x_token` | `null` | 当前模板 `""`；生产必须替换为强随机 token | 空字符串不是 `null`，仍会启用 token 比对。 |
 | `compression.accept` | `["gzip", "zstd"]` | `["gzip", "zstd"]` | 服务端接受客户端请求压缩格式。 |
 | `compression.send` | `["gzip", "zstd"]` | `["gzip", "zstd"]` | 服务端发送给客户端时可用压缩格式。 |
-| `max_decoding_message_size` | `4_194_304` | `67_108_864` 或 `134_217_728` | 客户端单个请求消息的最大解码大小。 |
+| `max_decoding_message_size` | `4_194_304` | 当前模板 `536_870_912` | 客户端单个请求消息的最大解码大小；当前模板为 512 MiB。 |
 | `snapshot_plugin_channel_capacity` | `null` | `null` | 设置后 snapshot account replay 会使用 bounded channel；满了会阻塞 validator startup。 |
 | `snapshot_client_channel_capacity` | `50_000_000` | `50_000_000` | snapshot 数据发送给客户端的通道容量。 |
 | `channel_capacity` | `250_000` | 自用可提高，例如 `2_000_000` | 每个连接的广播通道容量。 |
@@ -158,30 +160,38 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 示例：
 
 ```json
-"address": "0.0.0.0:10900"
+"address": "0.0.0.0:10001"
 ```
 
 含义：
 
 - `0.0.0.0` 表示监听所有网卡。
 - `127.0.0.1` 表示只允许本机访问。
-- `10900` 是监听端口。
+- `10001` 是当前模板监听端口。
 
-本项目安装脚本默认放行的是 `10900/tcp`。如果配置为其他端口，例如 `10001`，需要同步调整 UFW 和云厂商安全组。
+本项目当前配置模板监听 `10001/tcp`，但安装脚本仍默认放行 `10900/tcp`。生产部署时必须同步调整 UFW、云厂商安全组和客户端连接地址。
 
 源码默认值：`address` 是 `Option`，不写时为 `null`。当前 upstream README 已把 `grpc.address` 标为 legacy 字段，推荐新配置使用 `grpc.listen`。本项目为了简单部署仍可使用 `address`。
 
 公网生产环境不建议无保护地监听 `0.0.0.0`。如果只有本机程序使用，建议改成：
 
 ```json
-"address": "127.0.0.1:10900"
+"address": "127.0.0.1:10001"
 ```
 
 如果业务程序在其他服务器上，建议保留 `0.0.0.0`，但用 UFW 或云安全组只允许可信 IP 访问。
 
 ### x_token
 
-示例：
+当前模板：
+
+```json
+"x_token": ""
+```
+
+空字符串会作为实际 token 参与校验，并不等价于 `null` 或省略字段。客户端不携带对应的空 token 时仍会鉴权失败；由于该值完全可预测，不能用于生产保护。
+
+生产建议：
 
 ```json
 "x_token": "replace-with-a-long-random-token"
@@ -239,10 +249,10 @@ openssl rand -hex 32
 示例：
 
 ```json
-"max_decoding_message_size": "134_217_728"
+"max_decoding_message_size": "536_870_912"
 ```
 
-这是服务端允许解码的客户端单个 gRPC 请求消息最大大小。`134_217_728` 等于 128 MiB。
+这是服务端允许解码的客户端单个 gRPC 请求消息最大大小。当前模板的 `536_870_912` 等于 512 MiB。
 
 源码默认值：`4_194_304`，即 4 MiB。本项目模板通常会显式提高这个值，避免大型订阅请求被默认上限拒绝。
 
@@ -270,7 +280,7 @@ openssl rand -hex 32
 1024 MiB  = 1_073_741_824
 ```
 
-如果删除了 `filters` 限制，并允许客户端提交较大的订阅请求，可以设置为 `67_108_864` 或 `134_217_728`。
+当前代码口径使用 `536_870_912`。如果实际订阅请求远小于 512 MiB，可以在压测后降低到 `67_108_864` 或 `134_217_728`，减少异常大请求带来的内存压力。
 
 ### snapshot_plugin_channel_capacity
 
@@ -493,7 +503,7 @@ filter 名称缓存清理间隔。
 ```json
 "listen": [
   {
-    "address": "0.0.0.0:10900"
+    "address": "0.0.0.0:10001"
   }
 ]
 ```
@@ -608,13 +618,13 @@ filter 名称缓存清理间隔。
 ```json
 {
   "grpc": {
-    "address": "0.0.0.0:10900",
+    "address": "0.0.0.0:10001",
     "x_token": "replace-with-a-long-random-token",
     "compression": {
       "accept": ["gzip", "zstd"],
       "send": ["gzip", "zstd"]
     },
-    "max_decoding_message_size": "134_217_728",
+    "max_decoding_message_size": "536_870_912",
     "snapshot_plugin_channel_capacity": null,
     "snapshot_client_channel_capacity": "50_000_000",
     "channel_capacity": "2_000_000",
@@ -632,7 +642,7 @@ filter 名称缓存清理间隔。
 
 - 删除 `grpc.filters`。
 - 保留 `x_token`，并换成随机强 token。
-- `max_decoding_message_size` 设置为 `67_108_864` 或 `134_217_728`。
+- 当前模板的 `max_decoding_message_size` 是 `536_870_912`；确认客户端请求规模后可以压测并收敛该上限。
 - `compression` 保留 `gzip` 和 `zstd`。
 - `channel_capacity` 根据内存和客户端消费速度调整。
 - `address`、UFW、云安全组端口保持一致。
@@ -646,13 +656,13 @@ filter 名称缓存清理间隔。
     "level": "info"
   },
   "grpc": {
-    "address": "0.0.0.0:10900",
+    "address": "0.0.0.0:10001",
     "x_token": "replace-with-a-long-random-token",
     "compression": {
       "accept": ["gzip", "zstd"],
       "send": ["gzip", "zstd"]
     },
-    "max_decoding_message_size": "134_217_728",
+    "max_decoding_message_size": "536_870_912",
     "snapshot_plugin_channel_capacity": null,
     "snapshot_client_channel_capacity": "50_000_000",
     "channel_capacity": "2_000_000",
@@ -676,12 +686,12 @@ Yellowstone gRPC 可以输出高吞吐链上数据流，不应直接无限制暴
 UFW 示例：
 
 ```bash
-sudo ufw allow from <your-client-ip> to any port 10900 proto tcp
-sudo ufw deny 10900/tcp
+sudo ufw allow from <your-client-ip> to any port 10001 proto tcp
+sudo ufw deny 10001/tcp
 sudo ufw status
 ```
 
-如果已经存在宽松规则，例如 `sudo ufw allow 10900`，需要按实际情况删除旧规则后再添加来源 IP 限制。
+如果已经存在宽松规则，例如 `sudo ufw allow 10001`，需要按实际情况删除旧规则后再添加来源 IP 限制。安装脚本中的 `10900` 规则也需要同步清理或改成实际生产端口。
 
 ## 排查命令
 
