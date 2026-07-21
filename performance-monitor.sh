@@ -17,7 +17,7 @@ ALERT_THRESHOLD_CPU=80
 ALERT_THRESHOLD_MEM=85
 ALERT_THRESHOLD_DISK=80
 ALERT_THRESHOLD_INODE=80
-CHECK_INTERVAL=60  # seconds
+CHECK_INTERVAL=30  # seconds
 
 # Check each filesystem separately. /root/sol is usually the root filesystem,
 # while accounts/ledger/snapshot may be independent mounts.
