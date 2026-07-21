@@ -2,7 +2,7 @@
 Description=Solana Validator
 After=network.target network-online.target
 Wants=network-online.target
-RequiresMountsFor=/root/sol/accounts /root/sol/ledger /root/sol/snapshot
+RequiresMountsFor=/root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
@@ -50,6 +50,7 @@ ExecStopPost=-/bin/bash /root/solana-failure-diagnostics.sh
 ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
 ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'
 ExecStartPre=/bin/bash -c 'test -d /root/sol/accounts'
+ExecStartPre=/bin/bash -c 'test -d /root/sol/accounts_index'
 
 [Install]
 WantedBy=multi-user.target

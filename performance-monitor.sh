@@ -21,7 +21,7 @@ CHECK_INTERVAL=30  # seconds
 
 # Check each filesystem separately. /root/sol is usually the root filesystem,
 # while accounts/ledger/snapshot may be independent mounts.
-DISK_PATHS=(/root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot)
+DISK_PATHS=(/root/sol /root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot)
 
 # Colors for output
 RED='\033[0;31m'

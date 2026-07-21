@@ -25,21 +25,21 @@ echo "exit_status=$EXIT_STATUS_VALUE"
 echo
 
 echo "== Filesystem capacity =="
-df -P -B1 / /root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot || true
+df -P -B1 / /root/sol /root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot || true
 echo
 
 echo "== Filesystem inodes =="
-df -Pi / /root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot || true
+df -Pi / /root/sol /root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot || true
 echo
 
 echo "== Mounts =="
-for path in /root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot; do
+for path in /root/sol /root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot; do
     findmnt -T "$path" -o TARGET,SOURCE,FSTYPE,OPTIONS || true
 done
 echo
 
 echo "== Filesystem metadata =="
-for path in /root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot; do
+for path in /root/sol /root/sol/accounts /root/sol/accounts_index /root/sol/ledger /root/sol/snapshot; do
     stat -f -c 'path=%n type=%T blocks=%b free=%f avail=%a block_size=%S files=%c files_free=%d' "$path" || true
 done
 echo

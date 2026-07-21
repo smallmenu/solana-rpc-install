@@ -41,7 +41,7 @@ exec $VALIDATOR_CMD \
  --geyser-plugin-config /root/sol/bin/yellowstone-config.json \
  --ledger /root/sol/ledger \
  --accounts /root/sol/accounts \
- --accounts-index-path /root/sol/accounts/accounts_index \
+ --accounts-index-path /root/sol/accounts_index \
  --identity /root/sol/bin/validator-keypair.json \
  --snapshots /root/sol/snapshot \
  --log /root/solana-rpc.log \

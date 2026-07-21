@@ -15,6 +15,7 @@ source "$SCRIPT_DIR/lang.sh"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 LEDGER=${LEDGER:-/root/sol/ledger}
 ACCOUNTS=${ACCOUNTS:-/root/sol/accounts}
+ACCOUNTS_INDEX=${ACCOUNTS_INDEX:-/root/sol/accounts_index}
 SNAPSHOT=${SNAPSHOT:-/root/sol/snapshot}
 LOGFILE=/root/solana-rpc.log
 
@@ -212,7 +213,7 @@ echo "==> 3) $M_STEP3"
 rm -f "$LOGFILE" || true
 
 # Clean dirs
-dirs=("$LEDGER" "$ACCOUNTS" "$SNAPSHOT")
+dirs=("$LEDGER" "$ACCOUNTS" "$ACCOUNTS_INDEX" "$SNAPSHOT")
 for dir in "${dirs[@]}"; do
   if [[ -d "$dir" ]]; then
     printf "  - $M_CLEANING\n" "$dir"
@@ -222,7 +223,7 @@ for dir in "${dirs[@]}"; do
     mkdir -p "$dir"
   fi
 done
-mkdir -p "$ACCOUNTS/accounts_index"
+mkdir -p "$ACCOUNTS_INDEX"
 echo "  ✅ $M_OLD_CLEANED"
 
 echo ""

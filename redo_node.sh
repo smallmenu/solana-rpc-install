@@ -3,6 +3,7 @@
 set -e  # 遇到错误就退出
 
 SNAPSHOT_DIR="/root/sol/snapshot"
+ACCOUNTS_INDEX_DIR="/root/sol/accounts_index"
 
 validate_snapshot_download() {
   local snapshot_dir="$1"
@@ -62,6 +63,7 @@ rm -rf solana-rpc.log
 dirs=(
   "/root/sol/ledger"
   "/root/sol/accounts"
+  "$ACCOUNTS_INDEX_DIR"
   "$SNAPSHOT_DIR"
 )
 

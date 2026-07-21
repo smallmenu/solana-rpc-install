@@ -14,6 +14,7 @@ source "$SCRIPT_DIR/lang.sh"
 BASE=${BASE:-/root/sol}
 LEDGER="$BASE/ledger"
 ACCOUNTS="$BASE/accounts"
+ACCOUNTS_INDEX="$BASE/accounts_index"
 SNAPSHOT="$BASE/snapshot"
 BIN="$BASE/bin"
 TOOLS="$BASE/tools"
@@ -147,7 +148,7 @@ echo "============================================"
 echo ""
 
 echo "==> 1) $M_STEP1"
-mkdir -p "$LEDGER" "$ACCOUNTS" "$SNAPSHOT" "$BIN" "$TOOLS"
+mkdir -p "$LEDGER" "$ACCOUNTS" "$ACCOUNTS_INDEX" "$SNAPSHOT" "$BIN" "$TOOLS"
 echo "   ✓ $M_DIRS_OK"
 
 # ---------- Auto-detect and mount (priority: accounts -> ledger -> snapshot) ----------

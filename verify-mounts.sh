@@ -22,6 +22,7 @@ NC='\033[0m' # No Color
 
 # Solana 数据目录
 ACCOUNTS="/root/sol/accounts"
+ACCOUNTS_INDEX="/root/sol/accounts_index"
 LEDGER="/root/sol/ledger"
 SNAPSHOT="/root/sol/snapshot"
 
@@ -54,6 +55,7 @@ check_directory() {
 }
 
 check_directory "$ACCOUNTS" "Accounts"
+check_directory "$ACCOUNTS_INDEX" "Accounts index"
 check_directory "$LEDGER" "Ledger"
 check_directory "$SNAPSHOT" "Snapshot"
 echo ""
@@ -93,6 +95,7 @@ check_mount() {
 }
 
 check_mount "$ACCOUNTS" "Accounts"
+check_mount "$ACCOUNTS_INDEX" "Accounts index"
 check_mount "$LEDGER" "Ledger"
 check_mount "$SNAPSHOT" "Snapshot"
 
@@ -132,6 +135,7 @@ check_disk_usage() {
 }
 
 check_disk_usage "$ACCOUNTS" "Accounts"
+check_disk_usage "$ACCOUNTS_INDEX" "Accounts index"
 check_disk_usage "$LEDGER" "Ledger"
 check_disk_usage "$SNAPSHOT" "Snapshot"
 
@@ -207,6 +211,7 @@ check_dir_size() {
 }
 
 check_dir_size "$ACCOUNTS" "Accounts"
+check_dir_size "$ACCOUNTS_INDEX" "Accounts index"
 check_dir_size "$LEDGER" "Ledger"
 check_dir_size "$SNAPSHOT" "Snapshot"
 echo ""
