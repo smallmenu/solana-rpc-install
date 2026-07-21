@@ -1,0 +1,20 @@
+[Unit]
+Description=Solana RPC Performance Monitor
+After=local-fs.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/root/performance-monitor.sh monitor
+Restart=on-failure
+RestartSec=10
+User=root
+Nice=10
+IOSchedulingClass=idle
+CPUWeight=10
+IOWeight=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -2,13 +2,14 @@
 Description=Solana Validator
 After=network.target network-online.target
 Wants=network-online.target
+RequiresMountsFor=/root/sol/accounts /root/sol/ledger /root/sol/snapshot
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
 [Service]
 Type=simple
-Restart=on-failure
-RestartSec=30
+# Keep a failed validator stopped so its disk state can be inspected before recovery.
+Restart=no
 User=root
 LimitNOFILE=1000000
 LimitNPROC=1000000
@@ -18,7 +19,7 @@ LimitCORE=infinity
 LogRateLimitIntervalSec=0
 Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
 Environment="RUST_LOG=warn"
-Environment="RUST_BACKTRACE=1"
+Environment="RUST_BACKTRACE=full"
 # Prevent OOM killer from targeting this process
 OOMScoreAdjust=-900
 # Memory limits (dynamically adjusted based on system RAM tier)
@@ -43,6 +44,8 @@ KillSignal=SIGINT
 WorkingDirectory=/root/sol
 # Startup command (auto-selects appropriate validator script based on RAM)
 ExecStart=/bin/bash -c '/root/sol/bin/select-validator.sh'
+# Capture filesystem and kernel state immediately after an unexpected exit.
+ExecStopPost=-/bin/bash /root/solana-failure-diagnostics.sh
 # Pre-start validation
 ExecStartPre=/bin/bash -c 'test -f /root/sol/bin/validator-keypair.json'
 ExecStartPre=/bin/bash -c 'test -d /root/sol/ledger'

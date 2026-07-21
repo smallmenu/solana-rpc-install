@@ -362,6 +362,7 @@ fi
 echo ""
 echo "==> 11) $M_STEP11"
 cp -f "$SCRIPT_DIR/sol.service" /etc/systemd/system/${SERVICE_NAME}.service
+cp -f "$SCRIPT_DIR/solana-monitor.service" /etc/systemd/system/solana-monitor.service
 systemctl daemon-reload
 echo "   ✓ $M_SVC_UPDATED"
 
@@ -384,12 +385,15 @@ cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
 cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+cp -f "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
 chmod +x /root/*.sh
 echo "   ✓ $M_HELPERS_COPIED"
 
 echo ""
 echo "==> 14) $M_STEP14"
 systemctl enable "${SERVICE_NAME}"
+systemctl enable solana-monitor.service
+systemctl restart solana-monitor.service
 
 echo ""
 echo "==> 15) $M_STEP15"

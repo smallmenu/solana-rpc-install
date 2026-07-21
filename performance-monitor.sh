@@ -15,8 +15,13 @@ set -euo pipefail
 LOGFILE="/var/log/solana-performance.log"
 ALERT_THRESHOLD_CPU=80
 ALERT_THRESHOLD_MEM=85
-ALERT_THRESHOLD_DISK=90
+ALERT_THRESHOLD_DISK=80
+ALERT_THRESHOLD_INODE=80
 CHECK_INTERVAL=60  # seconds
+
+# Check each filesystem separately. /root/sol is usually the root filesystem,
+# while accounts/ledger/snapshot may be independent mounts.
+DISK_PATHS=(/root/sol /root/sol/accounts /root/sol/ledger /root/sol/snapshot)
 
 # Colors for output
 RED='\033[0;31m'
@@ -100,21 +105,44 @@ check_memory() {
 
 # Disk I/O metrics
 check_disk() {
-    local disk_usage=$(df -h /root/sol | awk 'NR==2{print $5}' | cut -d'%' -f1)
+    local path disk_line inode_line filesystem blocks used avail usage mount
+    local inode_total inode_used inode_avail inode_usage
 
-    log_metric "DISK_USAGE=${disk_usage}%"
+    for path in "${DISK_PATHS[@]}"; do
+        disk_line=$(df -P -B1 "$path" 2>/dev/null | awk 'NR==2{print}')
+        inode_line=$(df -Pi "$path" 2>/dev/null | awk 'NR==2{print}')
 
-    if [[ $disk_usage -gt $ALERT_THRESHOLD_DISK ]]; then
-        alert "High disk usage: ${disk_usage}%"
-    fi
+        if [[ -z "$disk_line" || -z "$inode_line" ]]; then
+            alert "Unable to read filesystem usage for $path"
+            continue
+        fi
+
+        read -r filesystem blocks used avail usage mount <<< "$disk_line"
+        read -r _ inode_total inode_used inode_avail inode_usage _ <<< "$inode_line"
+        usage=${usage%\%}
+        inode_usage=${inode_usage%\%}
+
+        log_metric "DISK_USAGE path=$path filesystem=$filesystem bytes_total=${blocks} bytes_used=${used} bytes_avail=${avail} percent=${usage}%"
+        log_metric "INODE_USAGE path=$path files_used=${inode_used} files_avail=${inode_avail} percent=${inode_usage}%"
+
+        if [[ "$usage" =~ ^[0-9]+$ && "$usage" -ge "$ALERT_THRESHOLD_DISK" ]]; then
+            alert "High disk usage on $path: ${usage}% (available=${avail} bytes)"
+        fi
+        if [[ "$inode_usage" =~ ^[0-9]+$ && "$inode_usage" -ge "$ALERT_THRESHOLD_INODE" ]]; then
+            alert "High inode usage on $path: ${inode_usage}% (available=${inode_avail})"
+        fi
+
+        echo -e "${BLUE}Disk:${NC} $path Usage=${usage}% Inodes=${inode_usage}% Avail=${avail}"
+    done
 
     # I/O stats
     if command -v iostat >/dev/null 2>&1; then
-        local io_stats=$(iostat -x 1 2 | grep -E 'nvme|sd' | tail -n1)
-        log_metric "DISK_IO: $io_stats"
+        local io_stats
+        while IFS= read -r io_stats; do
+            [[ -n "$io_stats" ]] && log_metric "DISK_IO: $io_stats"
+        done < <(iostat -x 1 2 | awk '/^Device/{report++; next} report==2 && $1 ~ /^(nvme|sd)/ {print}')
     fi
 
-    echo -e "${BLUE}Disk:${NC} Usage=${disk_usage}%"
 }
 
 # Network metrics
@@ -143,7 +171,8 @@ check_network() {
 # Validator health
 check_validator_health() {
     if ! check_validator_running; then
-        return 1
+        # The monitor must remain alive after the validator fails.
+        return 0
     fi
 
     # Check slot height
