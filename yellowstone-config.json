@@ -4,7 +4,11 @@
         "level": "info"
     },
     "grpc": {
-        "address": "0.0.0.0:10001",
+        "listen": [
+            {
+                "address": "0.0.0.0:10001"
+            }
+        ],
         "x_token": "",
         "compression": {
             "accept": [

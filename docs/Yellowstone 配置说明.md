@@ -123,8 +123,8 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 
 | 字段 | 源码默认值 | 当前模板值 / 生产建议 | 说明 |
 |------|------------|-------------------|------|
-| `address` | `null` / 未设置 | 当前模板 `0.0.0.0:10001` | 旧式监听字段，upstream README 已建议新配置使用 `listen`；端口必须和 UFW、安全组及客户端一致。 |
-| `listen` | `null` | 可选 | 新式监听配置，支持多个地址、TLS 和 per-listener auth。 |
+| `address` | `null` / 未设置 | 不设置 | 旧式顶层监听字段，已弃用。 |
+| `listen` | `null` | 当前模板监听 `0.0.0.0:10001` | 新式监听配置，支持多个地址、TLS 和 per-listener auth；端口必须和 UFW、安全组及客户端一致。 |
 | `tls_config` | `null` | 通常不设置 | 旧式 TLS 配置，upstream README 建议用 `listen[].tls`。 |
 | `cert_dir` | `null` | 通常不设置 | TLS 证书目录。 |
 | `x_token` | `null` | 当前模板 `""`；生产必须替换为强随机 token | 空字符串不是 `null`，仍会启用 token 比对。 |
@@ -155,12 +155,16 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 
 `usize::MAX` / `u64::MAX` 在这些限制项里基本表示“不限制”。在 64 位 Linux 上，`usize::MAX` 是 `18_446_744_073_709_551_615`。
 
-### address
+### listen
 
 示例：
 
 ```json
-"address": "0.0.0.0:10001"
+"listen": [
+  {
+    "address": "0.0.0.0:10001"
+  }
+]
 ```
 
 含义：
@@ -171,12 +175,16 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 
 本项目当前配置模板监听 `10001/tcp`，但安装脚本仍默认放行 `10900/tcp`。生产部署时必须同步调整 UFW、云厂商安全组和客户端连接地址。
 
-源码默认值：`address` 是 `Option`，不写时为 `null`。当前 upstream README 已把 `grpc.address` 标为 legacy 字段，推荐新配置使用 `grpc.listen`。本项目为了简单部署仍可使用 `address`。
+源码默认值：`listen` 是 `Option`，不写时为 `null`。旧的顶层 `grpc.address` 已弃用，当前模板使用 upstream 推荐的 `grpc.listen` 数组。
 
 公网生产环境不建议无保护地监听 `0.0.0.0`。如果只有本机程序使用，建议改成：
 
 ```json
-"address": "127.0.0.1:10001"
+"listen": [
+  {
+    "address": "127.0.0.1:10001"
+  }
+]
 ```
 
 如果业务程序在其他服务器上，建议保留 `0.0.0.0`，但用 UFW 或云安全组只允许可信 IP 访问。
@@ -496,7 +504,7 @@ filter 名称缓存清理间隔。
 
 自用节点一般不用设置。对外服务时可以设置具体值，配合防火墙、token、`filters` 和订阅限制一起使用。
 
-### listen
+### 多监听地址和 listener 配置
 
 示例：
 
@@ -512,7 +520,7 @@ filter 名称缓存清理间隔。
 
 源码默认值：`null`。
 
-本项目当前为了简化使用，仍然可以用旧式 `address` 字段。如果你要做更复杂的 TLS 或认证配置，建议迁移到 `listen`。
+本项目模板已迁移到 `listen`。如果需要更复杂的 TLS 或认证配置，可以继续在每个 listener 中分别配置。
 
 ### listen[].auth
 
@@ -618,7 +626,11 @@ filter 名称缓存清理间隔。
 ```json
 {
   "grpc": {
-    "address": "0.0.0.0:10001",
+    "listen": [
+      {
+        "address": "0.0.0.0:10001"
+      }
+    ],
     "x_token": "replace-with-a-long-random-token",
     "compression": {
       "accept": ["gzip", "zstd"],
@@ -645,7 +657,7 @@ filter 名称缓存清理间隔。
 - 当前模板的 `max_decoding_message_size` 是 `536_870_912`；确认客户端请求规模后可以压测并收敛该上限。
 - `compression` 保留 `gzip` 和 `zstd`。
 - `channel_capacity` 根据内存和客户端消费速度调整。
-- `address`、UFW、云安全组端口保持一致。
+- `listen[].address`、UFW、云安全组端口保持一致。
 
 示例：
 
@@ -656,7 +668,11 @@ filter 名称缓存清理间隔。
     "level": "info"
   },
   "grpc": {
-    "address": "0.0.0.0:10001",
+    "listen": [
+      {
+        "address": "0.0.0.0:10001"
+      }
+    ],
     "x_token": "replace-with-a-long-random-token",
     "compression": {
       "accept": ["gzip", "zstd"],
