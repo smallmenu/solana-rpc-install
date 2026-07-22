@@ -18,6 +18,8 @@ SERVICE_NAME=${SERVICE_NAME:-sol}
 DIAGNOSTIC_DIR=${DIAGNOSTIC_DIR:-/var/log}
 RPC_URL=${RPC_URL:-http://127.0.0.1:8899}
 SOLANA_CLI=${SOLANA_CLI:-solana}
+SOLANA_KEYGEN=${SOLANA_KEYGEN:-solana-keygen}
+VALIDATOR_KEYPAIR=${VALIDATOR_KEYPAIR:-/root/sol/bin/validator-keypair.json}
 CLI_TIMEOUT=${CLI_TIMEOUT:-10}
 ALERT_THRESHOLD_CPU=80
 ALERT_THRESHOLD_MEM=85
@@ -283,7 +285,7 @@ check_validator_health() {
     fi
 
     local slot_height slot_output slot_status
-    local catchup catchup_output catchup_status catchup_error
+    local catchup catchup_output catchup_status catchup_error validator_identity
     local health fd_count fd_limit fd_percent
 
     # Check slot height
@@ -300,11 +302,16 @@ check_validator_health() {
     log_metric "SLOT_HEIGHT=${slot_height}"
 
     # Check catchup status
-    if catchup_output=$(timeout "${CLI_TIMEOUT}s" "$SOLANA_CLI" --url "$RPC_URL" \
-        catchup --our-localhost 2>&1); then
-        catchup_status=0
+    if validator_identity=$("$SOLANA_KEYGEN" pubkey "$VALIDATOR_KEYPAIR" 2>&1); then
+        if catchup_output=$(timeout "${CLI_TIMEOUT}s" "$SOLANA_CLI" catchup \
+            "$validator_identity" "$RPC_URL" 2>&1); then
+            catchup_status=0
+        else
+            catchup_status=$?
+        fi
     else
         catchup_status=$?
+        catchup_output=$validator_identity
     fi
     catchup=$(printf '%s\n' "$catchup_output" | tr '\r' '\n' | \
         grep -Ei 'slot|caught|behind' | awk 'NF {line=$0} END {print line}' || true)
