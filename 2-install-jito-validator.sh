@@ -391,7 +391,12 @@ cp -f "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnosti
 cp -f "$SCRIPT_DIR/update-runtime.sh" /root/update-runtime.sh
 logrotate_tmp=$(mktemp)
 sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" >"$logrotate_tmp"
-logrotate --debug "$logrotate_tmp" >/dev/null
+if ! logrotate_output=$(logrotate --debug "$logrotate_tmp" 2>&1); then
+    printf '%s\n' "$logrotate_output" >&2
+    rm -f "$logrotate_tmp"
+    echo "[ERROR] logrotate configuration validation failed" >&2
+    exit 1
+fi
 install -m 0644 "$logrotate_tmp" /etc/logrotate.d/solana-rpc
 rm -f "$logrotate_tmp"
 chmod +x /root/*.sh

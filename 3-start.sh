@@ -111,7 +111,7 @@ sync_runtime_files() {
     logrotate-solana-rpc
     sol.service
   )
-  local file logrotate_tmp
+  local file logrotate_tmp logrotate_output
 
   for file in "${required_files[@]}"; do
     if [[ ! -f "$SCRIPT_DIR/$file" ]]; then
@@ -142,7 +142,8 @@ sync_runtime_files() {
 
   logrotate_tmp=$(mktemp)
   sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" >"$logrotate_tmp"
-  if ! logrotate --debug "$logrotate_tmp" >/dev/null; then
+  if ! logrotate_output=$(logrotate --debug "$logrotate_tmp" 2>&1); then
+    printf '%s\n' "$logrotate_output" >&2
     rm -f "$logrotate_tmp"
     echo "[ERROR] logrotate configuration validation failed" >&2
     return 1

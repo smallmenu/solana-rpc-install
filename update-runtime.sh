@@ -112,7 +112,8 @@ fi
 logrotate_tmp=$(mktemp)
 trap 'rm -f "$logrotate_tmp"' EXIT
 sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" > "$logrotate_tmp"
-if ! logrotate --debug "$logrotate_tmp" >/dev/null; then
+if ! logrotate_output=$(logrotate --debug "$logrotate_tmp" 2>&1); then
+  printf '%s\n' "$logrotate_output" >&2
   echo "[ERROR] logrotate configuration validation failed; nothing was updated" >&2
   exit 1
 fi

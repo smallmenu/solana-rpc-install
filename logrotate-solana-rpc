@@ -1,4 +1,5 @@
 /root/solana-rpc.log {
+    su root root
     daily
     rotate 7
     maxsize 1G
@@ -14,6 +15,7 @@
 }
 
 /var/log/solana-performance.log {
+    su root root
     daily
     rotate 7
     maxsize 256M

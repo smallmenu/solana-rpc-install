@@ -13,7 +13,7 @@ Restart=no
 User=root
 LimitNOFILE=1000000
 LimitNPROC=1000000
-LimitMEMLOCK=2000000000
+LimitMEMLOCK=infinity
 LimitSTACK=infinity
 LimitCORE=infinity
 LogRateLimitIntervalSec=0
@@ -21,13 +21,13 @@ Environment="PATH=/usr/local/solana/bin:/usr/bin:/bin"
 Environment="RUST_LOG=warn"
 Environment="RUST_BACKTRACE=full"
 # Keep the validator preferred while retaining 10% host-memory recovery headroom.
-OOMScoreAdjust=-500
+OOMScoreAdjust=-900
 # Avoid throttling replay on memory.high; MemoryMax is a last-resort cgroup boundary.
 MemoryHigh=infinity
 MemoryMax=90%
 # CPU affinity and scheduling
 Nice=-10
-IOSchedulingClass=best-effort
+IOSchedulingClass=realtime
 IOSchedulingPriority=0
 # Watchdog disabled - node initialization takes longer than 2 minutes
 # WatchdogSec=120
