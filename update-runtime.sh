@@ -31,7 +31,6 @@ required_files=(
   validator-256g.sh
   validator-512g.sh
   select-validator.sh
-  yellowstone-config.json
   performance-monitor.sh
   solana-failure-diagnostics.sh
   solana-monitor.service
@@ -126,8 +125,6 @@ mkdir -p "$backup_dir/bin"
 for file in validator.sh validator-128g.sh validator-192g.sh validator-256g.sh validator-512g.sh select-validator.sh; do
   [[ -f "$BIN/$file" ]] && cp -a "$BIN/$file" "$backup_dir/bin/$file"
 done
-[[ -f "$BIN/yellowstone-config.json" ]] && \
-  cp -a "$BIN/yellowstone-config.json" "$backup_dir/bin/yellowstone-config.json"
 [[ -f /root/performance-monitor.sh ]] && cp -a /root/performance-monitor.sh "$backup_dir/performance-monitor.sh"
 [[ -f /root/solana-failure-diagnostics.sh ]] && \
   cp -a /root/solana-failure-diagnostics.sh "$backup_dir/solana-failure-diagnostics.sh"
@@ -145,7 +142,6 @@ install -m 0755 "$SCRIPT_DIR/validator-192g.sh" "$BIN/validator-192g.sh"
 install -m 0755 "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
 install -m 0755 "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
 install -m 0755 "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
-install -m 0644 "$SCRIPT_DIR/yellowstone-config.json" "$BIN/yellowstone-config.json"
 install -m 0755 "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
 install -m 0755 "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
 install -m 0644 "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
@@ -157,6 +153,7 @@ systemctl enable solana-monitor.service >/dev/null
 systemctl restart solana-monitor.service
 
 echo "Runtime configuration updated without deleting ledger, accounts, or snapshots."
+echo "Yellowstone configuration was not changed; update $BIN/yellowstone-config.json manually."
 echo "Previous configuration backup: $backup_dir"
 
 if [[ -d /root/sol/snapshot ]]; then
@@ -193,8 +190,6 @@ if [[ "$RESTART" == true ]]; then
     for file in "$backup_dir"/bin/validator.sh "$backup_dir"/bin/validator-*.sh "$backup_dir"/bin/select-validator.sh; do
       [[ -f "$file" ]] && install -m 0755 "$file" "$BIN/$(basename "$file")"
     done
-    [[ -f "$backup_dir/bin/yellowstone-config.json" ]] && \
-      install -m 0644 "$backup_dir/bin/yellowstone-config.json" "$BIN/yellowstone-config.json"
     [[ -f "$backup_dir/performance-monitor.sh" ]] && \
       install -m 0755 "$backup_dir/performance-monitor.sh" /root/performance-monitor.sh
     [[ -f "$backup_dir/solana-failure-diagnostics.sh" ]] && \

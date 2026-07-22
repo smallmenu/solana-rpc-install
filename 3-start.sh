@@ -103,7 +103,6 @@ sync_runtime_files() {
     validator-256g.sh
     validator-512g.sh
     select-validator.sh
-    yellowstone-config.json
     performance-monitor.sh
     solana-failure-diagnostics.sh
     solana-monitor.service
@@ -135,7 +134,6 @@ sync_runtime_files() {
   install -m 0755 "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
   install -m 0755 "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
   install -m 0755 "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
-  install -m 0644 "$SCRIPT_DIR/yellowstone-config.json" "$BIN/yellowstone-config.json"
   install -m 0755 "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
   install -m 0755 "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
   install -m 0755 "$SCRIPT_DIR/update-runtime.sh" /root/update-runtime.sh

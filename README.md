@@ -51,8 +51,8 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 |--------|---------|
 | `1-prepare.sh` | Mount NVMe data disks, create Solana directories, and apply Linux system optimizations |
 | `2-install-jito-validator.sh` | Build and install Jito Solana / Agave validator from source |
-| `3-start.sh` | Reuse or download snapshots, sync runtime files, install systemd units, and start the RPC node |
-| `update-runtime.sh` | Validate and update runtime scripts, monitoring, and systemd configuration without deleting node data |
+| `3-start.sh` | Reuse or download snapshots, sync runtime files, install systemd units, and start the RPC node without overwriting the Yellowstone config |
+| `update-runtime.sh` | Validate and update runtime scripts, monitoring, and systemd configuration without deleting node data or overwriting the token-bearing Yellowstone config |
 | `logrotate-solana-rpc` | Rotate validator and performance-monitor logs |
 | `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
 | `yellowstone-config.json` | Production-tested Yellowstone gRPC Geyser configuration |

@@ -203,6 +203,7 @@ bash 3-start.sh
 - 不要在升级过程中执行 `1-prepare.sh`。
 - `3-start.sh` 默认会清空 `/root/sol/ledger`、`/root/sol/accounts`、`/root/sol/accounts_index`、`/root/sol/snapshot`，执行前需要输入 `FRESH-SYNC` 确认；`3-start.sh --keep-data` 才会复用本地数据。
 - 如果 `yellowstone-config.json` 在生产环境中有自定义过滤器、token、监听地址或限流配置，升级前必须备份并手工合并。
+- `update-runtime.sh` 和 `3-start.sh` 都不会校验、备份或覆盖 `/root/sol/bin/yellowstone-config.json`；Yellowstone 配置变更必须手工合并，并在维护窗口重启 validator 后生效。只有完整安装脚本 `2-install-jito-validator.sh` 会同步仓库模板。
 - 如果服务器对公网开放 `8899`、`8900`、`10900`，建议用防火墙限制可信 IP。
 - 如果新版本启动参数发生变化，需要同步更新 `validator-128g.sh`、`validator-192g.sh`、`validator-256g.sh`、`validator-512g.sh`。
 
