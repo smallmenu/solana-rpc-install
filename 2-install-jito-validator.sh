@@ -217,6 +217,8 @@ apt install -y \
     wget \
     curl \
     bzip2 \
+    logrotate \
+    sysstat \
     ufw
 
 echo ""
@@ -386,6 +388,12 @@ cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
 cp -f "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
+cp -f "$SCRIPT_DIR/update-runtime.sh" /root/update-runtime.sh
+logrotate_tmp=$(mktemp)
+sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" >"$logrotate_tmp"
+logrotate --debug "$logrotate_tmp" >/dev/null
+install -m 0644 "$logrotate_tmp" /etc/logrotate.d/solana-rpc
+rm -f "$logrotate_tmp"
 chmod +x /root/*.sh
 echo "   ✓ $M_HELPERS_COPIED"
 

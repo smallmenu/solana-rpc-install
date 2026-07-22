@@ -51,7 +51,9 @@
 |------|------|
 | `1-prepare.sh` | 挂载 NVMe 数据盘、创建 Solana 目录并应用 Linux 系统优化 |
 | `2-install-jito-validator.sh` | 从源码构建并安装 Jito Solana / Agave validator |
-| `3-start.sh` | 下载快照、安装 systemd 服务并启动 RPC 节点 |
+| `3-start.sh` | 复用或下载快照、同步运行脚本、安装 systemd 服务并启动 RPC 节点 |
+| `update-runtime.sh` | 校验并更新运行脚本、监控和 systemd 配置，不删除节点数据 |
+| `logrotate-solana-rpc` | 轮转 validator 和性能监控日志 |
 | `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
 | `yellowstone-config.json` | 经过生产测试的 Yellowstone gRPC Geyser 配置 |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
@@ -95,6 +97,10 @@ bash 2-install-jito-validator.sh
 
 # 步骤 3: 下载快照并启动节点
 bash 3-start.sh
+
+# 默认会清理旧 ledger/accounts 并重新下载快照（需输入 FRESH-SYNC 确认）
+# 只有明确要复用现有数据时才使用
+bash 3-start.sh --keep-data
 ```
 
 > **ℹ️ 安装方式**

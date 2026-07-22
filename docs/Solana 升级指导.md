@@ -6,7 +6,7 @@
 
 - `1-prepare.sh` 只用于首次部署和磁盘初始化，升级时不要执行。
 - `2-install-jito-validator.sh` 用于编译并安装目标版本的 Jito Solana validator。
-- `3-start.sh` 用于清理旧的 `ledger/accounts/snapshot`，重新下载快照并启动节点。
+- `3-start.sh` 默认清理 `ledger/accounts/accounts_index/snapshot`，重新下载快照并启动节点；只有明确使用 `--keep-data` 才会复用本地数据。
 - 本项目运维策略是：较大升级或重启后，优先重新拉快照启动，避免从旧 ledger 长时间追块但追不上。
 - Yellowstone gRPC 的 `libyellowstone_grpc_geyser.so` 需要和 Solana/Agave/Jito Solana 版本线匹配，不能只升级 validator 而继续使用旧版本 geyser 插件。
 - 当前生产环境的 Yellowstone 插件由 `yellowstone-grpc` 生产分支自行构建。安装脚本中的官方 release 下载逻辑只作为备用路径，不代表生产插件的实际来源。
@@ -201,7 +201,7 @@ bash 3-start.sh
 ## 常见注意事项
 
 - 不要在升级过程中执行 `1-prepare.sh`。
-- `3-start.sh` 会清空 `/root/sol/ledger`、`/root/sol/accounts`、`/root/sol/accounts_index`、`/root/sol/snapshot`，这是预期行为。
+- `3-start.sh` 默认会清空 `/root/sol/ledger`、`/root/sol/accounts`、`/root/sol/accounts_index`、`/root/sol/snapshot`，执行前需要输入 `FRESH-SYNC` 确认；`3-start.sh --keep-data` 才会复用本地数据。
 - 如果 `yellowstone-config.json` 在生产环境中有自定义过滤器、token、监听地址或限流配置，升级前必须备份并手工合并。
 - 如果服务器对公网开放 `8899`、`8900`、`10900`，建议用防火墙限制可信 IP。
 - 如果新版本启动参数发生变化，需要同步更新 `validator-128g.sh`、`validator-192g.sh`、`validator-256g.sh`、`validator-512g.sh`。

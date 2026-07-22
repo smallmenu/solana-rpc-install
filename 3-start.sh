@@ -13,11 +13,38 @@ LANG_CACHE_FILE="$SCRIPT_DIR/solana-rpc-lang"
 source "$SCRIPT_DIR/lang.sh"
 
 SERVICE_NAME=${SERVICE_NAME:-sol}
+BIN=${BIN:-/root/sol/bin}
 LEDGER=${LEDGER:-/root/sol/ledger}
 ACCOUNTS=${ACCOUNTS:-/root/sol/accounts}
 ACCOUNTS_INDEX=${ACCOUNTS_INDEX:-/root/sol/accounts_index}
 SNAPSHOT=${SNAPSHOT:-/root/sol/snapshot}
 LOGFILE=/root/solana-rpc.log
+# Fresh sync is the normal recovery path: an old ledger may be too far behind
+# to catch up. Use --keep-data only when deliberately reusing local state.
+FRESH_SYNC=true
+
+case "${1:-}" in
+  "")
+    ;;
+  --fresh-sync)
+    FRESH_SYNC=true
+    ;;
+  --keep-data)
+    FRESH_SYNC=false
+    ;;
+  -h|--help)
+    echo "Usage: sudo bash $0 [--keep-data]"
+    echo "  default      Delete node data after confirmation and download a fresh snapshot"
+    echo "  --keep-data  Preserve ledger/accounts/snapshots and reuse a complete snapshot"
+    echo "  --fresh-sync Compatibility alias for the default fresh-sync mode"
+    exit 0
+    ;;
+  *)
+    echo "[ERROR] Unknown option: $1" >&2
+    echo "Usage: sudo bash $0 [--keep-data]" >&2
+    exit 2
+    ;;
+esac
 
 validate_snapshot_download() {
   local snapshot_dir="$1"
@@ -67,6 +94,73 @@ validate_snapshot_download() {
   fi
 }
 
+sync_runtime_files() {
+  echo "  - Sync validator runtime scripts..."
+  local required_files=(
+    validator.sh
+    validator-128g.sh
+    validator-192g.sh
+    validator-256g.sh
+    validator-512g.sh
+    select-validator.sh
+    yellowstone-config.json
+    performance-monitor.sh
+    solana-failure-diagnostics.sh
+    solana-monitor.service
+    update-runtime.sh
+    logrotate-solana-rpc
+    sol.service
+  )
+  local file logrotate_tmp
+
+  for file in "${required_files[@]}"; do
+    if [[ ! -f "$SCRIPT_DIR/$file" ]]; then
+      echo "[ERROR] Missing runtime file: $SCRIPT_DIR/$file" >&2
+      return 1
+    fi
+  done
+
+  local missing_packages=()
+  command -v iostat >/dev/null 2>&1 || missing_packages+=(sysstat)
+  command -v logrotate >/dev/null 2>&1 || missing_packages+=(logrotate)
+  if ((${#missing_packages[@]} > 0)); then
+    apt-get update -qq
+    apt-get install -y "${missing_packages[@]}"
+  fi
+
+  mkdir -p "$BIN"
+  install -m 0755 "$SCRIPT_DIR/validator.sh" "$BIN/validator.sh"
+  install -m 0755 "$SCRIPT_DIR/validator-128g.sh" "$BIN/validator-128g.sh"
+  install -m 0755 "$SCRIPT_DIR/validator-192g.sh" "$BIN/validator-192g.sh"
+  install -m 0755 "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
+  install -m 0755 "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
+  install -m 0755 "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
+  install -m 0644 "$SCRIPT_DIR/yellowstone-config.json" "$BIN/yellowstone-config.json"
+  install -m 0755 "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+  install -m 0755 "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
+  install -m 0755 "$SCRIPT_DIR/update-runtime.sh" /root/update-runtime.sh
+
+  logrotate_tmp=$(mktemp)
+  sed "s/sol\.service/${SERVICE_NAME}.service/g" "$SCRIPT_DIR/logrotate-solana-rpc" >"$logrotate_tmp"
+  if ! logrotate --debug "$logrotate_tmp" >/dev/null; then
+    rm -f "$logrotate_tmp"
+    echo "[ERROR] logrotate configuration validation failed" >&2
+    return 1
+  fi
+  install -m 0644 "$logrotate_tmp" /etc/logrotate.d/solana-rpc
+  rm -f "$logrotate_tmp"
+
+  if command -v systemd-analyze >/dev/null 2>&1; then
+    systemd-analyze verify "$SCRIPT_DIR/sol.service"
+    systemd-analyze verify "$SCRIPT_DIR/solana-monitor.service"
+  fi
+  install -m 0644 "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
+  install -m 0644 "$SCRIPT_DIR/solana-monitor.service" /etc/systemd/system/solana-monitor.service
+  systemctl daemon-reload
+  systemctl enable solana-monitor.service >/dev/null
+  systemctl restart solana-monitor.service
+}
+
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] Please run as root: sudo bash $0" >&2
   exit 1
@@ -75,20 +169,26 @@ fi
 prompt_lang
 
 if [[ "$LANG_SCRIPT" == "zh" ]]; then
-  M_HEADER="步骤 3: 下载快照并启动节点"
+  M_HEADER="步骤 3: 准备快照并启动节点"
   M_STEP1="验证系统优化已生效..."
-  M_BBR_OK="BBR 拥塞控制: 已启用"
-  M_BBR_OFF="BBR 拥塞控制: 未启用 (当前: %s)"
-  M_TCP_OK="TCP 缓冲区: 512MB (极限)"
-  M_TCP_OFF="TCP 缓冲区: 未达到极限 (当前: %s, 期望: 536870912)"
-  M_RA_OK="磁盘预读: 32MB (%s)"
-  M_RA_OFF="磁盘预读: 未达到极限 (当前: %sKB, 期望: 32768KB)"
+  M_RMEM_OK="Socket 缓冲区上限: 128MB"
+  M_RMEM_OFF="Socket 缓冲区上限不正确 (当前: %s, 期望: 134217728)"
+  M_MAP_OK="内存映射上限: 1000000"
+  M_MAP_OFF="内存映射上限不正确 (当前: %s, 期望至少: 1000000)"
+  M_CPU_OK="CPU governor: performance"
+  M_CPU_OFF="CPU governor 未设置为 performance (当前: %s)"
+  M_THP_OK="Transparent Huge Pages: disabled"
+  M_THP_OFF="Transparent Huge Pages 未关闭 (当前: %s)"
   M_STEP2="停止现有服务..."
   M_SVC_STOPPED="服务已停止"
-  M_STEP3="清理旧数据（保留身份密钥）..."
+  M_STEP3="准备节点数据目录..."
   M_CLEANING="清理目录: %s"
   M_CREATING="创建目录: %s"
   M_OLD_CLEANED="旧数据已清理"
+  M_DATA_KEPT="保留模式：复用现有 ledger、accounts 和 snapshot"
+  M_FRESH_WARNING="警告：默认 fresh sync 将永久删除现有节点数据。"
+  M_FRESH_PROMPT="请输入 FRESH-SYNC 确认清理: "
+  M_FRESH_CANCEL="未收到确认，已取消清理。"
   M_STEP4="准备快照下载工具..."
   M_INSTALL_PY="安装 Python 依赖..."
   M_CLONE="克隆 solana-snapshot-finder..."
@@ -98,7 +198,8 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_TOOL_READY="工具准备完成"
   M_STEP5="下载快照（1-3 小时，取决于网络速度）..."
   M_SPEED="预期下载速度: 500MB - 2GB/s（极限优化）"
-  M_SNAP_DONE="快照下载完成"
+  M_SNAP_DONE="快照已就绪"
+  M_SNAP_REUSE="检测到完整快照，跳过重复下载"
   M_STEP6="启动 Solana RPC 节点..."
   M_NODE_OK="节点已启动"
   M_NODE_FAIL="节点启动失败"
@@ -106,7 +207,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_DONE_HEADER="步骤 3 完成: 节点已成功启动!"
   M_STATUS="节点状态:"
   M_RUNNING="服务: 运行中"
-  M_SNAPSHOT="快照: 已下载"
+  M_SNAPSHOT="快照: 已就绪"
   M_SYNC_TIME="预计同步时间: 30-60 分钟"
   M_MONITOR="监控命令:"
   M_LIVE_LOG="实时日志:"
@@ -114,25 +215,31 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEALTH="健康检查:"
   M_CATCHUP="追块状态:"
   M_METRICS="关键指标:"
-  M_MEM="内存峰值应 < 110GB"
+  M_MEM="内存峰值应低于 systemd MemoryMax 且无持续 pressure"
   M_CPU="CPU 使用率 < 70%"
   M_LAG="追块延迟 < 100 slots"
   M_FINISH="完成! RPC 节点正在同步区块链数据..."
 else
-  M_HEADER="Step 3: Download snapshot and start node"
+  M_HEADER="Step 3: Prepare snapshot and start node"
   M_STEP1="Verify system optimizations..."
-  M_BBR_OK="BBR congestion control: enabled"
-  M_BBR_OFF="BBR congestion control: disabled (current: %s)"
-  M_TCP_OK="TCP buffer: 512MB (max)"
-  M_TCP_OFF="TCP buffer: not at max (current: %s, expected: 536870912)"
-  M_RA_OK="Disk read-ahead: 32MB (%s)"
-  M_RA_OFF="Disk read-ahead: not at max (current: %sKB, expected: 32768KB)"
+  M_RMEM_OK="Socket buffer maximum: 128MB"
+  M_RMEM_OFF="Socket buffer maximum is incorrect (current: %s, expected: 134217728)"
+  M_MAP_OK="Memory map limit: 1000000"
+  M_MAP_OFF="Memory map limit is too low (current: %s, expected at least: 1000000)"
+  M_CPU_OK="CPU governor: performance"
+  M_CPU_OFF="CPU governor is not performance (current: %s)"
+  M_THP_OK="Transparent Huge Pages: disabled"
+  M_THP_OFF="Transparent Huge Pages are not disabled (current: %s)"
   M_STEP2="Stop existing service..."
   M_SVC_STOPPED="Service stopped"
-  M_STEP3="Clean old data (keep identity key)..."
+  M_STEP3="Prepare node data directories..."
   M_CLEANING="Cleaning dir: %s"
   M_CREATING="Creating dir: %s"
   M_OLD_CLEANED="Old data cleaned"
+  M_DATA_KEPT="Keep-data mode: preserving ledger, accounts, and snapshots"
+  M_FRESH_WARNING="WARNING: the default fresh-sync permanently deletes existing node data."
+  M_FRESH_PROMPT="Type FRESH-SYNC to confirm deletion: "
+  M_FRESH_CANCEL="Confirmation not received; cleanup cancelled."
   M_STEP4="Prepare snapshot download tool..."
   M_INSTALL_PY="Installing Python deps..."
   M_CLONE="Cloning solana-snapshot-finder..."
@@ -142,7 +249,8 @@ else
   M_TOOL_READY="Tool ready"
   M_STEP5="Download snapshot (1-3 hours depending on network)..."
   M_SPEED="Expected speed: 500MB - 2GB/s (optimized)"
-  M_SNAP_DONE="Snapshot download complete"
+  M_SNAP_DONE="Snapshot is ready"
+  M_SNAP_REUSE="Complete snapshot found; skipping duplicate download"
   M_STEP6="Start Solana RPC node..."
   M_NODE_OK="Node started"
   M_NODE_FAIL="Node failed to start"
@@ -150,7 +258,7 @@ else
   M_DONE_HEADER="Step 3 complete: Node started successfully!"
   M_STATUS="Node status:"
   M_RUNNING="Service: running"
-  M_SNAPSHOT="Snapshot: downloaded"
+  M_SNAPSHOT="Snapshot: ready"
   M_SYNC_TIME="Expected sync time: 30-60 minutes"
   M_MONITOR="Monitor commands:"
   M_LIVE_LOG="Live log:"
@@ -158,7 +266,7 @@ else
   M_HEALTH="Health:"
   M_CATCHUP="Catchup:"
   M_METRICS="Key metrics:"
-  M_MEM="Memory peak < 110GB"
+  M_MEM="Memory peak below systemd MemoryMax without sustained pressure"
   M_CPU="CPU usage < 70%"
   M_LAG="Catchup lag < 100 slots"
   M_FINISH="Done! RPC node is syncing..."
@@ -173,129 +281,150 @@ echo ""
 echo "==> 1) $M_STEP1"
 echo ""
 
-# BBR
-bbr=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null || echo "unknown")
-if [[ "$bbr" == "bbr" ]]; then
-  echo "  ✅ $M_BBR_OK"
-else
-  printf "  ⚠️  $M_BBR_OFF\n" "$bbr"
-fi
-
-# TCP buffer
+# Anza socket buffer baseline
 rmem=$(sysctl -n net.core.rmem_max 2>/dev/null || echo "0")
-if [[ "$rmem" == "536870912" ]]; then
-  echo "  ✅ $M_TCP_OK"
+if [[ "$rmem" == "134217728" ]]; then
+  echo "  ✅ $M_RMEM_OK"
 else
-  printf "  ⚠️  $M_TCP_OFF\n" "$rmem"
+  printf "  ⚠️  $M_RMEM_OFF\n" "$rmem"
 fi
 
-# Disk read-ahead
-for dev in /sys/block/nvme* /sys/block/sd*; do
-  [[ -e "$dev" ]] || continue
-  devname=$(basename "$dev")
-  ra=$(cat "$dev/queue/read_ahead_kb" 2>/dev/null || echo "0")
-  if [[ "$ra" == "32768" ]]; then
-    printf "  ✅ $M_RA_OK\n" "$devname"
-  else
-    printf "  ⚠️  $M_RA_OFF\n" "$ra"
-  fi
-  break
-done
+map_count=$(sysctl -n vm.max_map_count 2>/dev/null || echo "0")
+if [[ "$map_count" =~ ^[0-9]+$ ]] && ((map_count >= 1000000)); then
+  echo "  ✅ $M_MAP_OK"
+else
+  printf "  ⚠️  $M_MAP_OFF\n" "$map_count"
+fi
+
+governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "unavailable")
+if [[ "$governor" == "performance" ]]; then
+  echo "  ✅ $M_CPU_OK"
+else
+  printf "  ⚠️  $M_CPU_OFF\n" "$governor"
+fi
+
+thp=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || echo "unavailable")
+if [[ "$thp" == *"[never]"* ]]; then
+  echo "  ✅ $M_THP_OK"
+else
+  printf "  ⚠️  $M_THP_OFF\n" "$thp"
+fi
 
 echo ""
 echo "==> 2) $M_STEP2"
-systemctl stop $SERVICE_NAME 2>/dev/null || true
+systemctl stop "$SERVICE_NAME" 2>/dev/null || true
 sleep 2
 echo "  ✅ $M_SVC_STOPPED"
 
 echo ""
 echo "==> 3) $M_STEP3"
-rm -f "$LOGFILE" || true
-
-# Clean dirs
 dirs=("$LEDGER" "$ACCOUNTS" "$ACCOUNTS_INDEX" "$SNAPSHOT")
 for dir in "${dirs[@]}"; do
-  if [[ -d "$dir" ]]; then
-    printf "  - $M_CLEANING\n" "$dir"
-    rm -rf "$dir"/* "$dir"/.[!.]* "$dir"/..?* || true
-  else
+  if [[ ! -d "$dir" ]]; then
     printf "  - $M_CREATING\n" "$dir"
     mkdir -p "$dir"
   fi
 done
-mkdir -p "$ACCOUNTS_INDEX"
-echo "  ✅ $M_OLD_CLEANED"
+
+if [[ "$FRESH_SYNC" == true ]]; then
+  echo "  $M_FRESH_WARNING"
+  read -r -p "  $M_FRESH_PROMPT" fresh_confirm
+  if [[ "$fresh_confirm" != "FRESH-SYNC" ]]; then
+    echo "  $M_FRESH_CANCEL"
+    exit 1
+  fi
+
+  rm -f "$LOGFILE" || true
+  for dir in "${dirs[@]}"; do
+    printf "  - $M_CLEANING\n" "$dir"
+    rm -rf "${dir:?}"/* "${dir:?}"/.[!.]* "${dir:?}"/..?* || true
+  done
+  echo "  ✅ $M_OLD_CLEANED"
+else
+  echo "  ✅ $M_DATA_KEPT"
+fi
+
+reuse_snapshot=false
+snapshot_validation=""
+if [[ "$FRESH_SYNC" != true ]]; then
+  if snapshot_validation=$(validate_snapshot_download "$SNAPSHOT" 2>&1); then
+    reuse_snapshot=true
+  fi
+fi
 
 echo ""
 echo "==> 4) $M_STEP4"
-cd /root
-
-# Install deps
-echo "  - $M_INSTALL_PY"
-apt-get update -qq
-apt-get install -y python3-venv git >/dev/null 2>&1
-
-# Clone or update solana-snapshot-finder
-if [[ ! -d "solana-snapshot-finder" ]]; then
-  echo "  - $M_CLONE"
-  git clone https://github.com/0xfnzero/solana-snapshot-finder >/dev/null 2>&1
+if [[ "$reuse_snapshot" == true ]]; then
+  echo "  ✅ $M_SNAP_REUSE"
+  printf '%s\n' "$snapshot_validation"
 else
-  echo "  - $M_UPDATE"
+  cd /root
+
+  echo "  - $M_INSTALL_PY"
+  apt-get update -qq
+  apt-get install -y python3-venv git >/dev/null 2>&1
+
+  if [[ ! -d "solana-snapshot-finder" ]]; then
+    echo "  - $M_CLONE"
+    git clone https://github.com/0xfnzero/solana-snapshot-finder >/dev/null 2>&1
+  else
+    echo "  - $M_UPDATE"
+    git -C solana-snapshot-finder pull --ff-only >/dev/null 2>&1
+  fi
+
   cd solana-snapshot-finder
-  git pull >/dev/null 2>&1
-  cd ..
+  if [[ ! -d "venv" ]]; then
+    echo "  - $M_VENV"
+    python3 -m venv venv
+  fi
+
+  echo "  - $M_PIP"
+  source ./venv/bin/activate
+  pip3 install --upgrade pip >/dev/null 2>&1
+  pip3 install -r requirements.txt >/dev/null 2>&1
+
+  echo "  ✅ $M_TOOL_READY"
 fi
-
-# Create venv
-cd solana-snapshot-finder
-if [[ ! -d "venv" ]]; then
-  echo "  - $M_VENV"
-  python3 -m venv venv
-fi
-
-echo "  - $M_PIP"
-source ./venv/bin/activate
-pip3 install --upgrade pip >/dev/null 2>&1
-pip3 install -r requirements.txt >/dev/null 2>&1
-
-echo "  ✅ $M_TOOL_READY"
 
 echo ""
 echo "==> 5) $M_STEP5"
 echo ""
-echo "  🚀 $M_SPEED"
-echo ""
 
-# Run snapshot finder
-set +e
-python3 snapshot-finder.py --snapshot_path "$SNAPSHOT"
-snapshot_finder_status=$?
-set -e
+if [[ "$reuse_snapshot" != true ]]; then
+  echo "  🚀 $M_SPEED"
+  echo ""
+  set +e
+  python3 snapshot-finder.py --snapshot_path "$SNAPSHOT"
+  snapshot_finder_status=$?
+  set -e
 
-if [[ $snapshot_finder_status -ne 0 ]]; then
-  echo "  ⚠️  snapshot-finder exited with status $snapshot_finder_status; verifying downloaded snapshot files..."
+  if [[ $snapshot_finder_status -ne 0 ]]; then
+    echo "  ⚠️  snapshot-finder exited with status $snapshot_finder_status; verifying downloaded snapshot files..."
+  fi
+
+  validate_snapshot_download "$SNAPSHOT"
 fi
-
-validate_snapshot_download "$SNAPSHOT"
 
 echo ""
 echo "  ✅ $M_SNAP_DONE"
 
 echo ""
 echo "==> 6) $M_STEP6"
-systemctl start $SERVICE_NAME
+sync_runtime_files
+systemctl start "$SERVICE_NAME"
 
 # Wait for service
 sleep 3
 
 # Check status
-if systemctl is-active --quiet $SERVICE_NAME; then
+if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo "  ✅ $M_NODE_OK"
 else
   echo "  ❌ $M_NODE_FAIL"
   echo ""
   echo "$M_CHECK_LOGS"
-  systemctl status $SERVICE_NAME --no-pager -l
+  systemctl status "$SERVICE_NAME" --no-pager -l
+  journalctl -u "$SERVICE_NAME" -n 100 --no-pager || true
   exit 1
 fi
 
