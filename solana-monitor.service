@@ -9,6 +9,8 @@ ExecStart=/root/performance-monitor.sh monitor
 Restart=on-failure
 RestartSec=10
 User=root
+Environment="PATH=/usr/local/solana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin"
+Environment="RPC_URL=http://127.0.0.1:8899"
 Nice=10
 IOSchedulingClass=idle
 CPUWeight=10

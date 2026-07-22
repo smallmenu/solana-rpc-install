@@ -16,6 +16,9 @@ LOGFILE=${LOGFILE:-/var/log/solana-performance.log}
 VALIDATOR_LOG=${VALIDATOR_LOG:-/root/solana-rpc.log}
 SERVICE_NAME=${SERVICE_NAME:-sol}
 DIAGNOSTIC_DIR=${DIAGNOSTIC_DIR:-/var/log}
+RPC_URL=${RPC_URL:-http://127.0.0.1:8899}
+SOLANA_CLI=${SOLANA_CLI:-solana}
+CLI_TIMEOUT=${CLI_TIMEOUT:-10}
 ALERT_THRESHOLD_CPU=80
 ALERT_THRESHOLD_MEM=85
 ALERT_THRESHOLD_DISK=80
@@ -279,18 +282,42 @@ check_validator_health() {
         return 1
     fi
 
-    local slot_height catchup health fd_count fd_limit fd_percent
+    local slot_height slot_output slot_status
+    local catchup catchup_output catchup_status catchup_error
+    local health fd_count fd_limit fd_percent
 
     # Check slot height
-    slot_height=$(solana slot 2>/dev/null || echo "ERROR")
+    if slot_output=$(timeout "${CLI_TIMEOUT}s" "$SOLANA_CLI" --url "$RPC_URL" slot 2>&1); then
+        slot_status=0
+    else
+        slot_status=$?
+    fi
+    slot_height=$(printf '%s\n' "$slot_output" | awk 'NF {line=$0} END {print line}')
+    if ! is_uint "$slot_height"; then
+        warn "Slot query failed (exit=$slot_status): ${slot_height:-no output}"
+        slot_height="ERROR"
+    fi
     log_metric "SLOT_HEIGHT=${slot_height}"
 
     # Check catchup status
-    catchup=$(solana catchup --our-localhost 2>/dev/null | grep "Slot" || echo "Unknown")
+    if catchup_output=$(timeout "${CLI_TIMEOUT}s" "$SOLANA_CLI" --url "$RPC_URL" \
+        catchup --our-localhost 2>&1); then
+        catchup_status=0
+    else
+        catchup_status=$?
+    fi
+    catchup=$(printf '%s\n' "$catchup_output" | tr '\r' '\n' | \
+        grep -Ei 'slot|caught|behind' | awk 'NF {line=$0} END {print line}' || true)
+    if [[ -z "$catchup" ]]; then
+        catchup_error=$(printf '%s\n' "$catchup_output" | tr '\r' '\n' | \
+            awk 'NF {line=$0} END {print line}')
+        warn "Catchup query failed (exit=$catchup_status): ${catchup_error:-no output}"
+        catchup="Unknown"
+    fi
     log_metric "CATCHUP=${catchup}"
 
     # Check health
-    health=$(curl -sS --max-time 5 -X POST http://localhost:8899 \
+    health=$(curl -sS --max-time 5 -X POST "$RPC_URL" \
         -H "Content-Type: application/json" \
         -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' 2>/dev/null | \
         grep -o '"result":"[^"]*"' || echo "Unknown")
