@@ -64,7 +64,10 @@ exec $VALIDATOR_CMD \
  --rpc-max-request-body-size 20971520 \
  --rpc-bigtable-timeout 180 --rpc-send-retry-ms 1000 \
  --account-index program-id \
+ --account-index spl-token-owner \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
+ --account-index-include-key MenuxY5yMzJkeKZTvDTcovjh4fuJHMHhJyjJ5v5LzG6 \
+ --account-index-include-key Menu6gwHVfJA2fG6D6eJ8yP6WDHwzuTQgoiBmVcxUtC \
  --no-incremental-snapshots \
  --maximum-full-snapshots-to-retain 1 \
  --maximum-incremental-snapshots-to-retain 2 \
