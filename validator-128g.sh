@@ -68,7 +68,7 @@ exec $VALIDATOR_CMD \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --account-index-include-key MenuxY5yMzJkeKZTvDTcovjh4fuJHMHhJyjJ5v5LzG6 \
  --account-index-include-key Menu6gwHVfJA2fG6D6eJ8yP6WDHwzuTQgoiBmVcxUtC \
- --no-incremental-snapshots \
+ --no-snapshots \
  --maximum-full-snapshots-to-retain 1 \
  --maximum-incremental-snapshots-to-retain 2 \
  --minimal-snapshot-download-speed 10485760 \
@@ -79,7 +79,7 @@ exec $VALIDATOR_CMD \
  --accounts-index-limit minimal \
  --accounts-db-access-storages-method file \
  --accounts-db-cache-limit-mb 8192 \
- --accounts-index-scan-results-limit-mb 8192 \
+ --accounts-index-scan-results-limit-mb 2048 \
  --accounts-db-ancient-append-vecs 250000 \
  --disable-banking-trace \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
