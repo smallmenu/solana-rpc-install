@@ -59,6 +59,7 @@ exec $VALIDATOR_CMD \
  --only-known-rpc --no-port-check \
  --dynamic-port-range 8000-8026 --gossip-port 8000 \
  --rpc-bind-address 0.0.0.0 --rpc-port 8899 \
+ --shred-receiver-address 233.84.178.1:7733 \
  --full-rpc-api --private-rpc --rpc-threads 8 \
  --rpc-max-multiple-accounts 1000 \
  --rpc-max-request-body-size 20971520 \
