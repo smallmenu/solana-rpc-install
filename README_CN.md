@@ -92,7 +92,7 @@ bash verify-mounts.sh
 
 # 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
 bash 2-install-jito-validator.sh
-# 直接回车安装 v4.0.0，或输入指定版本 (例如: v4.0.0-rc.1)
+# 直接回车安装 v4.2.0，或输入指定版本 (例如: v4.2.0-rc.1)
 # 支持 stable、rc、beta 等 Jito 标签
 
 # 步骤 3: 下载快照并启动节点
@@ -204,7 +204,7 @@ bash /root/performance-monitor.sh snapshot
 ### ⚡ Yellowstone gRPC 配置
 
 - ✅ **启用压缩**: gzip + zstd (减少内存拷贝开销)
-- 📦 **保守缓冲区**: 50M 快照, 200K 通道 (快速处理)
+- 📦 **生产缓冲区**: 50M 快照, 2M 通道
 - 🎯 **经过验证的默认值**: 系统管理的 Tokio，默认 HTTP/2 设置
 - 🛡️ **资源保护**: 严格的过滤器限制防止滥用
 
@@ -230,7 +230,7 @@ bash /root/performance-monitor.sh snapshot
 |------|------|------|
 | **8899** | HTTP | RPC 端点 |
 | **8900** | WebSocket | 实时订阅 |
-| **10900** | gRPC | 高性能数据流 |
+| **10001** | gRPC | Yellowstone 数据流 |
 | **8000-8026** | TCP/UDP | 验证者通信 (动态) |
 
 ## 📈 性能指标
@@ -247,11 +247,11 @@ bash /root/performance-monitor.sh snapshot
 ┌─────────────────────────────────────────────────────────┐
 │                   Solana RPC 节点堆栈                     │
 ├─────────────────────────────────────────────────────────┤
-│  Jito Solana 验证者 (v4.0.x)                            │
+│  Jito Solana 验证者 (v4.2.x)                            │
 │  ├─ 安装方式: 从 GitHub 源码编译                         │
 │  │  • agave-validator 完整 MEV 支持                     │
 │  │  • 100% 符合 Jito Foundation 标准 (15-30 分钟)      │
-│  ├─ Yellowstone gRPC v13.1.0 (Solana 4.0)              │
+│  ├─ Yellowstone gRPC v15.x (Solana 4.2)                │
 │  ├─ RPC HTTP/WebSocket (端口 8899/8900)                │
 │  └─ 账户 & 账本 (优化的 RocksDB)                        │
 ├─────────────────────────────────────────────────────────┤
@@ -263,7 +263,7 @@ bash /root/performance-monitor.sh snapshot
 ├─────────────────────────────────────────────────────────┤
 │  Yellowstone gRPC (开源测试配置)                         │
 │  ├─ 压缩: 启用 gzip+zstd (快速处理)                      │
-│  ├─ 缓冲区: 50M 快照, 200K 通道 (低延迟)                │
+│  ├─ 缓冲区: 50M 快照, 2M 通道 (低延迟)                  │
 │  ├─ 默认值: 系统管理, 无过度优化                         │
 │  └─ 保护: 严格过滤器, 资源限制                           │
 ├─────────────────────────────────────────────────────────┤
@@ -286,7 +286,7 @@ bash /root/performance-monitor.sh snapshot
 
 2. **更小的缓冲区 = 更快的处理**
    - 50M 快照 vs 250M: 更少的队列延迟，更快的吞吐量
-   - 200K 通道 vs 1.5M: 减少"缓冲区膨胀"延迟
+   - 2M 通道: 为生产突发流量提供容量，实际延迟需结合队列指标评估
 
 3. **系统默认值 = 更好的稳定性**
    - 无自定义 Tokio 线程: 让系统自动管理

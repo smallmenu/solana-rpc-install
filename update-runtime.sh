@@ -80,6 +80,7 @@ required_validator_flags=(
   --accounts-index-scan-results-limit-mb
   --accounts-shrink-ratio
   --accounts-index-bins
+  --no-xdp
 )
 for flag in "${required_validator_flags[@]}"; do
   if ! grep -q -- "$flag" <<<"$validator_help"; then
@@ -91,6 +92,11 @@ done
 for validator_script in "$SCRIPT_DIR"/validator-{128g,192g,256g,512g}.sh; do
   if ! grep -q -- '--accounts-index-limit minimal' "$validator_script"; then
     echo "[ERROR] Missing --accounts-index-limit minimal in $validator_script" >&2
+    exit 1
+  fi
+  if grep -q -- '--allow-private-addr' "$validator_script" &&
+    ! grep -q -- '--no-xdp' "$validator_script"; then
+    echo "[ERROR] --allow-private-addr requires --no-xdp in $validator_script" >&2
     exit 1
   fi
   if grep -q -- '--enable-accounts-disk-index\|--block-production-method central-scheduler' "$validator_script"; then

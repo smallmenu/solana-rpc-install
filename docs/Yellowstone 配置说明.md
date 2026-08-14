@@ -18,7 +18,7 @@ yellowstone-config.json
 /root/sol/bin/yellowstone-config.json
 ```
 
-`2-install-jito-validator.sh` 会把仓库里的模板复制到 `/root/sol/bin/yellowstone-config.json`。如果节点已经安装完成，后续只修改仓库模板不会自动影响正在运行的节点，需要同步修改服务器上的实际生效文件。
+`2-install-jito-validator.sh` 只在目标配置不存在时复制仓库模板。升级已有节点时，脚本会备份并保留 `/root/sol/bin/yellowstone-config.json`，避免覆盖生产 token、allowlist 和监听配置。后续只修改仓库模板不会自动影响正在运行的节点，新字段仍需手工合并到实际生效文件。
 
 validator 启动参数中通过下面的参数加载 Yellowstone Geyser 插件配置：
 
@@ -104,8 +104,9 @@ trace
 
 ```text
 D:\Repos\solana-rpc\yellowstone-grpc
-branch: master
-commit: 919b411
+branch: sm-v15.1.0-v4.2.0
+commit: 58d94ff
+upstream baseline: v15.0.1+solana.4.2.0
 ```
 
 主要源码位置：
@@ -128,12 +129,16 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 | `tls_config` | `null` | 通常不设置 | 旧式 TLS 配置，upstream README 建议用 `listen[].tls`。 |
 | `cert_dir` | `null` | 通常不设置 | TLS 证书目录。 |
 | `x_token` | `null` | 当前模板 `""`；生产必须替换为强随机 token | 空字符串不是 `null`，仍会启用 token 比对。 |
+| `static_owner_allowlist` | 空集合 | 通用模板省略；生产自构建插件按需配置 | 本项目定制字段，只允许指定 owner 的 account update 进入后续流水线；官方备用插件不支持。 |
 | `compression.accept` | `["gzip", "zstd"]` | `["gzip", "zstd"]` | 服务端接受客户端请求压缩格式。 |
 | `compression.send` | `["gzip", "zstd"]` | `["gzip", "zstd"]` | 服务端发送给客户端时可用压缩格式。 |
 | `max_decoding_message_size` | `4_194_304` | 当前模板 `536_870_912` | 客户端单个请求消息的最大解码大小；当前模板为 512 MiB。 |
 | `snapshot_plugin_channel_capacity` | `null` | `null` | 设置后 snapshot account replay 会使用 bounded channel；满了会阻塞 validator startup。 |
 | `snapshot_client_channel_capacity` | `50_000_000` | `50_000_000` | snapshot 数据发送给客户端的通道容量。 |
 | `channel_capacity` | `250_000` | 自用可提高，例如 `2_000_000` | 每个连接的广播通道容量。 |
+| `processed_broadcast_capacity` | 使用 `channel_capacity` | 默认即可 | v15 processed commitment 广播容量。 |
+| `confirmed_broadcast_capacity` | 使用 `channel_capacity` | 默认即可 | v15 confirmed commitment 广播容量。 |
+| `finalized_broadcast_capacity` | 使用 `channel_capacity` | 默认即可 | v15 finalized commitment 广播容量。 |
 | `unary_concurrency_limit` | `Semaphore::MAX_PERMITS` | `1000` | unary 方法并发限制。源码默认极大，模板显式收敛。 |
 | `unary_disabled` | `false` | `false` | 是否禁用 unary gRPC 方法。 |
 | `subscription_limit` | `1000` | 默认即可 | 每个 subscriber ID 的并发订阅数上限。 |
@@ -173,7 +178,7 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 - `127.0.0.1` 表示只允许本机访问。
 - `10001` 是当前模板监听端口。
 
-本项目当前配置模板监听 `10001/tcp`，但安装脚本仍默认放行 `10900/tcp`。生产部署时必须同步调整 UFW、云厂商安全组和客户端连接地址。
+本项目当前配置模板监听 `10001/tcp`，安装脚本也放行 `10001/tcp`。生产部署时仍需同步核对 UFW、云厂商安全组和客户端连接地址；从旧版本升级的节点应清理不再使用的 `10900` 历史规则。
 
 源码默认值：`listen` 是 `Option`，不写时为 `null`。旧的顶层 `grpc.address` 已弃用，当前模板使用 upstream 推荐的 `grpc.listen` 数组。
 
@@ -220,6 +225,27 @@ yellowstone-grpc-tools/src/server/tonic/metered.rs
 ```bash
 openssl rand -hex 32
 ```
+
+### static_owner_allowlist
+
+`static_owner_allowlist` 是当前生产 fork 唯一保留的 Yellowstone 定制字段，仅对 account update 生效：
+
+```json
+"static_owner_allowlist": [
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "11111111111111111111111111111111"
+]
+```
+
+语义：
+
+- 字段缺省、`null` 或空数组时不启用过滤。
+- 非空时，只有 owner 位于集合内的 account update 才会进入 snapshot 和 gRPC 后续流水线。
+- 非法 pubkey 会导致配置加载失败。
+- 该字段是全局过滤，不是单个客户端的订阅 filter。
+- `owner_reject` 仍在 allowlist 之后生效；同时出现在两处的 owner 最终会被拒绝。
+
+生产自构建插件来自 `yellowstone-grpc` 的 `sm-v15.1.0-v4.2.0` 分支。官方 `v15.1.0+solana.4.2.0` 备用插件不包含此定制字段，不能直接加载包含 `static_owner_allowlist` 的配置。安装脚本检测到这种组合时会拒绝继续，必须通过 `YELLOWSTONE_GEYSER_LOCAL_FILE` 和 `YELLOWSTONE_GEYSER_LOCAL_SHA256` 提供自构建产物。
 
 ### compression
 
@@ -707,7 +733,7 @@ sudo ufw deny 10001/tcp
 sudo ufw status
 ```
 
-如果已经存在宽松规则，例如 `sudo ufw allow 10001`，需要按实际情况删除旧规则后再添加来源 IP 限制。安装脚本中的 `10900` 规则也需要同步清理或改成实际生产端口。
+如果已经存在宽松规则，例如 `sudo ufw allow 10001`，需要按实际情况删除旧规则后再添加来源 IP 限制。从旧版本升级时，也应检查并清理不再使用的 `10900` 历史规则。
 
 ## 排查命令
 
@@ -720,7 +746,7 @@ sudo journalctl -u sol.service -f
 确认监听端口：
 
 ```bash
-sudo ss -lntp | grep -E '10900|10001'
+sudo ss -lntp | grep -E '10001'
 ```
 
 确认配置文件内容：
@@ -738,5 +764,5 @@ sudo ufw status numbered
 ## 参考
 
 - Yellowstone gRPC README: `https://github.com/rpcpool/yellowstone-grpc`
-- Yellowstone gRPC filter limits 源码: `https://github.com/rpcpool/yellowstone-grpc/blob/master/yellowstone-grpc-geyser/src/plugin/filter/limits.rs`
-- Yellowstone gRPC config 源码: `https://github.com/rpcpool/yellowstone-grpc/blob/master/yellowstone-grpc-geyser/src/config.rs`
+- Yellowstone gRPC filter limits 源码: `https://github.com/rpcpool/yellowstone-grpc/blob/v15.0.1%2Bsolana.4.2.0/yellowstone-grpc-geyser/src/plugin/filter/limits.rs`
+- Yellowstone gRPC config 源码: `https://github.com/rpcpool/yellowstone-grpc/blob/v15.0.1%2Bsolana.4.2.0/yellowstone-grpc-geyser/src/config.rs`

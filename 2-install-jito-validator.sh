@@ -28,17 +28,22 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.1.1"
+DEFAULT_SOLANA_VERSION="v4.2.0"
 
 # Yellowstone artifacts
-# v13.1.0 is the latest non-Triton Yellowstone gRPC release for the Solana 4.0 line.
-YELLOWSTONE_RELEASE_TAG="v14.1.0+solana.4.1.0"
-YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v14.1.0%2Bsolana.4.1.0"
+# Official release is the fallback. Production can provide the custom build through
+# YELLOWSTONE_GEYSER_LOCAL_FILE and YELLOWSTONE_GEYSER_LOCAL_SHA256.
+YELLOWSTONE_RELEASE_TAG="v15.1.0+solana.4.2.0"
+YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v15.1.0%2Bsolana.4.2.0"
 YELLOWSTONE_GEYSER_SO_URL="$YELLOWSTONE_RELEASE_URL/libyellowstone_grpc_geyser.so"
-YELLOWSTONE_GEYSER_SO_SHA256="f15b654c930963016c5ace2052a72acca5bb64b2e8a630fcf15dbd41ca579eda"
+YELLOWSTONE_GEYSER_SO_SHA256="d2f2023ccc690da5ceeea49178cc067c5af078e327802df6d303d0c62750cf7c"
+YELLOWSTONE_GEYSER_LOCAL_FILE=${YELLOWSTONE_GEYSER_LOCAL_FILE:-}
+YELLOWSTONE_GEYSER_LOCAL_SHA256=${YELLOWSTONE_GEYSER_LOCAL_SHA256:-}
+YELLOWSTONE_CUSTOM_BUILD_REF=${YELLOWSTONE_CUSTOM_BUILD_REF:-sm-v15.1.0-v4.2.0@58d94ff}
 YELLOWSTONE_GEYSER_DIR="$BIN/yellowstone-grpc-geyser-release"
 YELLOWSTONE_GEYSER_LIB_DIR="$YELLOWSTONE_GEYSER_DIR/lib"
 YELLOWSTONE_GEYSER_LIB="$YELLOWSTONE_GEYSER_LIB_DIR/libyellowstone_grpc_geyser.so"
+YELLOWSTONE_BACKUP_ROOT="$BIN/yellowstone-backups"
 
 if [[ $EUID -ne 0 ]]; then
   echo "[ERROR] Please run as root: sudo bash $0" >&2
@@ -51,9 +56,9 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_HEADER="Jito Solana Validator - 从源码编译安装"
   M_STEP0="选择 Jito Solana 版本..."
   M_SEE_TAGS="查看所有版本: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(页面显示 v4.0.0-jito 格式，您只需输入 v4.0.0；预发布版可输入 v4.0.0-rc.1)"
-  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 v4.0.0]: "
-  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 v4.0.0)"
+  M_ENTER_HINT="(页面标签带 -jito 后缀；只输入版本号。直接回车使用 ${DEFAULT_SOLANA_VERSION})"
+  M_VER_PROMPT="请输入 Jito Solana 版本号 [默认 ${DEFAULT_SOLANA_VERSION}]: "
+  M_VER_ERR="[错误] 版本号格式不正确，应为 vX.Y.Z 或 vX.Y.Z-rc.N 格式 (例如 ${DEFAULT_SOLANA_VERSION})"
   M_VER_SUFFIX="只输入版本号，不要包含 -jito 后缀"
   M_WILL_INSTALL="将安装版本:"
   M_STEP1="安装编译依赖（与 Jito 官方文档一致）..."
@@ -90,7 +95,12 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_SVC_UPDATED="systemd 服务配置已更新"
   M_STEP12="下载 Yellowstone gRPC geyser..."
   M_GEYSER_VERSION="Yellowstone gRPC 版本: %s"
+  M_GEYSER_OFFICIAL="使用官方备用 Yellowstone 产物"
+  M_GEYSER_CUSTOM="使用本地自构建 Yellowstone 产物: %s"
   M_GEYSER_VERIFY="校验 Yellowstone gRPC geyser..."
+  M_GEYSER_BACKUP="已备份现有 Yellowstone 文件到: %s"
+  M_GEYSER_CONFIG_KEEP="保留现有 Yellowstone 配置: %s"
+  M_GEYSER_CONFIG_NEW="已安装 Yellowstone 配置模板: %s"
   M_GEYSER_DONE="Yellowstone geyser 配置完成"
   M_STEP13="复制辅助脚本..."
   M_HELPERS_COPIED="辅助脚本已复制"
@@ -107,9 +117,9 @@ else
   M_HEADER="Jito Solana Validator - Build and install from source"
   M_STEP0="Select Jito Solana version..."
   M_SEE_TAGS="See all tags: https://github.com/jito-foundation/jito-solana/tags"
-  M_ENTER_HINT="(page shows v4.0.0-jito; enter only v4.0.0; prereleases like v4.0.0-rc.1 are allowed)"
-  M_VER_PROMPT="Enter Jito Solana version [default v4.0.0]: "
-  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. v4.0.0)"
+  M_ENTER_HINT="(tags include the -jito suffix; enter only the version. Press Enter for ${DEFAULT_SOLANA_VERSION})"
+  M_VER_PROMPT="Enter Jito Solana version [default ${DEFAULT_SOLANA_VERSION}]: "
+  M_VER_ERR="[ERROR] Invalid version format. Use vX.Y.Z or vX.Y.Z-rc.N (e.g. ${DEFAULT_SOLANA_VERSION})"
   M_VER_SUFFIX="Enter version only, without -jito suffix"
   M_WILL_INSTALL="Will install:"
   M_STEP1="Install build dependencies (per Jito docs)..."
@@ -146,7 +156,12 @@ else
   M_SVC_UPDATED="systemd service updated"
   M_STEP12="Download Yellowstone gRPC geyser..."
   M_GEYSER_VERSION="Yellowstone gRPC version: %s"
+  M_GEYSER_OFFICIAL="Using the official fallback Yellowstone artifact"
+  M_GEYSER_CUSTOM="Using locally built Yellowstone artifact: %s"
   M_GEYSER_VERIFY="Verify Yellowstone gRPC geyser..."
+  M_GEYSER_BACKUP="Existing Yellowstone files backed up to: %s"
+  M_GEYSER_CONFIG_KEEP="Preserving existing Yellowstone config: %s"
+  M_GEYSER_CONFIG_NEW="Installed Yellowstone config template: %s"
   M_GEYSER_DONE="Yellowstone geyser configured"
   M_STEP13="Copy helper scripts..."
   M_HELPERS_COPIED="Helper scripts copied"
@@ -213,6 +228,7 @@ apt install -y \
     make \
     libprotobuf-dev \
     protobuf-compiler \
+    jq \
     git \
     wget \
     curl \
@@ -220,6 +236,36 @@ apt install -y \
     logrotate \
     sysstat \
     ufw
+
+# Fail before the expensive build if the existing production config and selected
+# Yellowstone artifact are incompatible.
+if [[ -f "$GEYSER_CFG" ]]; then
+  if ! jq -e 'type == "object" and (.grpc | type == "object")' "$GEYSER_CFG" >/dev/null; then
+    echo "[ERROR] Existing Yellowstone config is not a valid config object: $GEYSER_CFG" >&2
+    exit 1
+  fi
+  if [[ -z "$YELLOWSTONE_GEYSER_LOCAL_FILE" ]] && jq -e \
+    '.grpc | has("static_owner_allowlist")' "$GEYSER_CFG" >/dev/null; then
+    echo "[ERROR] Existing config uses grpc.static_owner_allowlist, but no custom Yellowstone artifact was provided." >&2
+    echo "        Set YELLOWSTONE_GEYSER_LOCAL_FILE and YELLOWSTONE_GEYSER_LOCAL_SHA256." >&2
+    exit 1
+  fi
+fi
+if [[ -z "$YELLOWSTONE_GEYSER_LOCAL_FILE" && -n "$YELLOWSTONE_GEYSER_LOCAL_SHA256" ]]; then
+  echo "[ERROR] YELLOWSTONE_GEYSER_LOCAL_SHA256 requires YELLOWSTONE_GEYSER_LOCAL_FILE" >&2
+  exit 1
+fi
+if [[ -n "$YELLOWSTONE_GEYSER_LOCAL_FILE" ]]; then
+  if [[ ! -f "$YELLOWSTONE_GEYSER_LOCAL_FILE" ]]; then
+    echo "[ERROR] YELLOWSTONE_GEYSER_LOCAL_FILE does not exist: $YELLOWSTONE_GEYSER_LOCAL_FILE" >&2
+    exit 1
+  fi
+  if [[ ! "$YELLOWSTONE_GEYSER_LOCAL_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+    echo "[ERROR] YELLOWSTONE_GEYSER_LOCAL_SHA256 must be a 64-character SHA256" >&2
+    exit 1
+  fi
+  echo "${YELLOWSTONE_GEYSER_LOCAL_SHA256,,}  $YELLOWSTONE_GEYSER_LOCAL_FILE" | sha256sum -c -
+fi
 
 echo ""
 echo "==> 2) $M_STEP2"
@@ -337,7 +383,7 @@ ufw allow 8000:8026/tcp
 ufw allow 8000:8026/udp
 ufw allow 8899   # HTTP
 ufw allow 8900   # WS
-ufw allow 10900  # GRPC
+ufw allow 10001/tcp  # Yellowstone gRPC
 ufw status || true
 
 echo ""
@@ -370,14 +416,50 @@ echo "   ✓ $M_SVC_UPDATED"
 
 echo ""
 echo "==> 12) $M_STEP12"
-printf "   - $M_GEYSER_VERSION\n" "$YELLOWSTONE_RELEASE_TAG"
-rm -rf "$YELLOWSTONE_GEYSER_DIR"
+
+geyser_staging=$(mktemp)
+geyser_install_staging=""
+cleanup_geyser_staging() {
+  rm -f "$geyser_staging"
+  if [[ -n "$geyser_install_staging" ]]; then
+    rm -f "$geyser_install_staging"
+  fi
+}
+trap cleanup_geyser_staging EXIT
+if [[ -n "$YELLOWSTONE_GEYSER_LOCAL_FILE" ]]; then
+  printf "   - $M_GEYSER_VERSION\n" "$YELLOWSTONE_CUSTOM_BUILD_REF"
+  cp -f "$YELLOWSTONE_GEYSER_LOCAL_FILE" "$geyser_staging"
+  echo "${YELLOWSTONE_GEYSER_LOCAL_SHA256,,}  $geyser_staging" | sha256sum -c -
+  printf "   - $M_GEYSER_CUSTOM\n" "$YELLOWSTONE_GEYSER_LOCAL_FILE"
+else
+  printf "   - $M_GEYSER_VERSION\n" "$YELLOWSTONE_RELEASE_TAG"
+  echo "   - $M_GEYSER_OFFICIAL"
+  wget -q --show-progress "$YELLOWSTONE_GEYSER_SO_URL" -O "$geyser_staging"
+  echo "$YELLOWSTONE_GEYSER_SO_SHA256  $geyser_staging" | sha256sum -c -
+fi
+
+if [[ -f "$YELLOWSTONE_GEYSER_LIB" || -f "$GEYSER_CFG" ]]; then
+  mkdir -p "$YELLOWSTONE_BACKUP_ROOT"
+  yellowstone_backup_dir=$(mktemp -d "$YELLOWSTONE_BACKUP_ROOT/$(date '+%Y%m%d-%H%M%S')-XXXXXX")
+  [[ -f "$YELLOWSTONE_GEYSER_LIB" ]] && cp -a "$YELLOWSTONE_GEYSER_LIB" "$yellowstone_backup_dir/"
+  [[ -f "$GEYSER_CFG" ]] && cp -a "$GEYSER_CFG" "$yellowstone_backup_dir/"
+  printf "   - $M_GEYSER_BACKUP\n" "$yellowstone_backup_dir"
+fi
+
 mkdir -p "$YELLOWSTONE_GEYSER_LIB_DIR"
-wget -q --show-progress "$YELLOWSTONE_GEYSER_SO_URL" -O "$YELLOWSTONE_GEYSER_LIB"
 echo "   - $M_GEYSER_VERIFY"
-echo "$YELLOWSTONE_GEYSER_SO_SHA256  $YELLOWSTONE_GEYSER_LIB" | sha256sum -c -
-chmod 755 "$YELLOWSTONE_GEYSER_LIB"
-cp -f "$SCRIPT_DIR/yellowstone-config.json" "$GEYSER_CFG"
+geyser_install_staging=$(mktemp "$YELLOWSTONE_GEYSER_LIB_DIR/.libyellowstone_grpc_geyser.so.XXXXXX")
+install -m 0755 "$geyser_staging" "$geyser_install_staging"
+mv -f "$geyser_install_staging" "$YELLOWSTONE_GEYSER_LIB"
+geyser_install_staging=""
+rm -f "$geyser_staging"
+trap - EXIT
+if [[ -f "$GEYSER_CFG" ]]; then
+  printf "   - $M_GEYSER_CONFIG_KEEP\n" "$GEYSER_CFG"
+else
+  install -m 0644 "$SCRIPT_DIR/yellowstone-config.json" "$GEYSER_CFG"
+  printf "   - $M_GEYSER_CONFIG_NEW\n" "$GEYSER_CFG"
+fi
 echo "   ✓ $M_GEYSER_DONE"
 
 echo ""

@@ -81,5 +81,5 @@ exec $VALIDATOR_CMD \
  --disable-banking-trace \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
  --health-check-slot-distance 150 \
- --no-voting --allow-private-addr --bind-address 0.0.0.0 \
+ --no-voting --no-xdp --allow-private-addr --bind-address 0.0.0.0 \
  --log-messages-bytes-limit 201326592
