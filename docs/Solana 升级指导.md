@@ -117,7 +117,7 @@ vX.Y.Z
 
 ```bash
 source /etc/profile.d/solana.sh
-agave-validator --version || solana-validator --version
+agave-validator --version
 ```
 
 确认 Yellowstone 插件 SHA256：
