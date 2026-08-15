@@ -92,7 +92,7 @@ bash verify-mounts.sh
 
 # Step 2: Build Jito Solana from source (15-30 minutes)
 bash 2-install-jito-validator.sh
-# Press Enter to install v4.2.0, or enter a specific version (e.g., v4.2.0-rc.1)
+# Press Enter to install v4.2.1, or enter a specific version (e.g., v4.2.1-rc.1)
 # Supports stable, rc, and beta Jito tags
 
 # Step 3: Download snapshot and start node

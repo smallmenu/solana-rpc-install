@@ -92,7 +92,7 @@ bash verify-mounts.sh
 
 # 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
 bash 2-install-jito-validator.sh
-# 直接回车安装 v4.2.0，或输入指定版本 (例如: v4.2.0-rc.1)
+# 直接回车安装 v4.2.1，或输入指定版本 (例如: v4.2.1-rc.1)
 # 支持 stable、rc、beta 等 Jito 标签
 
 # 步骤 3: 下载快照并启动节点

@@ -15,8 +15,8 @@
 
 每次升级前先确认这些信息：
 
-- 目标 Jito Solana tag，例如 `v4.2.0-jito`。
-- 输入脚本时使用的版本号，例如 `v4.2.0`，不要带 `-jito` 后缀。
+- 目标 Jito Solana tag，例如 `v4.2.1-jito`。
+- 输入脚本时使用的版本号，例如 `v4.2.1`，不要带 `-jito` 后缀。
 - 对应 Yellowstone gRPC upstream tag、生产分支和准确 commit。
 - 自行构建后的 `libyellowstone_grpc_geyser.so` SHA256，以及实际部署路径。
 - 如果临时改用官方 release 备用路径，再确认 release tag、下载地址和官方 SHA256。
@@ -217,16 +217,16 @@ bash 3-start.sh
 - 如果服务器对公网开放 `8899`、`8900`、`10001`，建议用防火墙限制可信 IP。
 - 如果新版本启动参数发生变化，需要同步更新 `validator-128g.sh`、`validator-192g.sh`、`validator-256g.sh`、`validator-512g.sh`。
 
-## 本次升级：v4.2.0-jito
+## 本次升级：v4.2.1-jito
 
 > 当前生产环境的 Yellowstone 插件不是直接使用下面的官方 release 二进制，而是使用 `yellowstone-grpc` 仓库生产分支自行构建的产物。下面的官方 release 信息仅对应 `2-install-jito-validator.sh` 保留的备用下载路径。
 
 本次目标：
 
-- Jito Solana: `v4.2.0-jito`
-- Jito annotated tag object: `83dd1557d93ec33fd5ab2c2a7151a8e7836b2424`
-- Jito source commit: `13fa43a6611c82183594c40210a0126009f6f565`
-- 脚本输入版本: `v4.2.0`
+- Jito Solana: `v4.2.1-jito`
+- Jito annotated tag object: `001679b24964b7bda9a586729695555ed7e1cbf1`
+- Jito source commit: `166de6d3a5082ce1abbe04dd42077fa75cac877e`
+- 脚本输入版本: `v4.2.1`
 - Yellowstone gRPC upstream 基线: `v15.0.1+solana.4.2.0`
 - Yellowstone gRPC 生产构建分支: `sm-v15.1.0-v4.2.0`
 - Yellowstone gRPC 生产 commit: `58d94ff3a4c77fb37e0f637e82b7b0b7eee3607c`
@@ -247,7 +247,7 @@ d2f2023ccc690da5ceeea49178cc067c5af078e327802df6d303d0c62750cf7c
 本次需要把 `2-install-jito-validator.sh` 中的相关配置改成：
 
 ```bash
-DEFAULT_SOLANA_VERSION="v4.2.0"
+DEFAULT_SOLANA_VERSION="v4.2.1"
 
 YELLOWSTONE_RELEASE_TAG="v15.1.0+solana.4.2.0"
 YELLOWSTONE_RELEASE_URL="https://github.com/rpcpool/yellowstone-grpc/releases/download/v15.1.0%2Bsolana.4.2.0"
@@ -287,7 +287,7 @@ CUSTOM_YELLOWSTONE_SHA256=$(sha256sum "$CUSTOM_YELLOWSTONE_SO" | awk '{print $1}
 YELLOWSTONE_GEYSER_LOCAL_FILE="$CUSTOM_YELLOWSTONE_SO" \
 YELLOWSTONE_GEYSER_LOCAL_SHA256="$CUSTOM_YELLOWSTONE_SHA256" \
 bash 2-install-jito-validator.sh
-# 直接回车使用 v4.2.0
+# 直接回车使用 v4.2.1
 
 source /etc/profile.d/solana.sh
 agave-validator --version || solana-validator --version
@@ -300,6 +300,6 @@ bash 3-start.sh
 
 安装脚本会在 `/root/sol/bin/yellowstone-backups/<timestamp>-<random>/` 备份原插件和配置，并保留已有 `/root/sol/bin/yellowstone-config.json`。首次安装或现有配置没有 allowlist 时，需要在启动前手工合并生产 `static_owner_allowlist`。
 
-已对 `v4.2.0-jito` 源码核对 validator CLI。v4.2.0 在 Linux 上默认尝试启用 XDP，并新增 `--no-xdp` 用于回退到 UDP sockets；同时 `--allow-private-addr` 明确要求 `--no-xdp`。因此四个 validator tier 脚本均增加 `--no-xdp`，其余已有 CLI 参数未发现需要删除或改名。
+已对 `v4.2.1-jito` 源码核对 validator CLI。其 validator CLI 核心文件与 `v4.2.0-jito` 完全一致：Linux 默认尝试启用 XDP，`--no-xdp` 用于回退到 UDP sockets，同时 `--allow-private-addr` 明确要求 `--no-xdp`。因此四个 validator tier 脚本继续保留 `--no-xdp`，其余已有 CLI 参数未发现需要删除或改名。
 
 截至本次记录，生产环境以 `v15.0.1+solana.4.2.0` 为 upstream 基线，在 `sm-v15.1.0-v4.2.0` 分支保留 `static_owner_allowlist` 定制并自行构建。官方 `v15.1.0+solana.4.2.0` release 二进制只作为备用路径，不能和包含 `static_owner_allowlist` 的配置混用。

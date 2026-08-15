@@ -28,7 +28,7 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.2.0"
+DEFAULT_SOLANA_VERSION="v4.2.1"
 
 # Yellowstone artifacts
 # Official release is the fallback. Production can provide the custom build through
