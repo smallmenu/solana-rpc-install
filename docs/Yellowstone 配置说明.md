@@ -2,7 +2,7 @@
 
 本文说明本项目中的 `yellowstone-config.json` 配置项含义、常见修改方式和运维注意事项。
 
-当前生产环境使用 `yellowstone-grpc` 生产分支自行构建的 `libyellowstone_grpc_geyser.so`。本文配置值以仓库当前模板为准；安装脚本下载的官方 release 二进制只作为备用路径。
+当前生产环境使用 `yellowstone-grpc` 生产分支自行构建的 `libyellowstone_grpc_geyser.so`。本文配置值以仓库当前模板为准；安装脚本固定从 `/data/yellowstone-grpc/target/release/libyellowstone_grpc_geyser.so` 安装。
 
 ## 文件位置
 
@@ -245,7 +245,7 @@ openssl rand -hex 32
 - 该字段是全局过滤，不是单个客户端的订阅 filter。
 - `owner_reject` 仍在 allowlist 之后生效；同时出现在两处的 owner 最终会被拒绝。
 
-生产自构建插件来自 `yellowstone-grpc` 的 `sm-v15.1.0-v4.2.0` 分支。官方 `v15.1.0+solana.4.2.0` 备用插件不包含此定制字段，不能直接加载包含 `static_owner_allowlist` 的配置。安装脚本检测到这种组合时会拒绝继续，必须通过 `YELLOWSTONE_GEYSER_LOCAL_FILE` 和 `YELLOWSTONE_GEYSER_LOCAL_SHA256` 提供自构建产物。
+生产自构建插件来自 `yellowstone-grpc` 的 `sm-v15.1.0-v4.2.0` 分支，固定构建路径为 `/data/yellowstone-grpc/target/release/libyellowstone_grpc_geyser.so`。官方插件不包含此定制字段，安装脚本不会下载或使用官方插件，也不检查自构建产物的 SHA256；固定路径不存在时会直接终止。
 
 ### compression
 
