@@ -102,6 +102,11 @@ for validator_script in "$SCRIPT_DIR"/validator-{128g,192g,256g,512g}.sh; do
     echo "[ERROR] --allow-private-addr requires --no-xdp in $validator_script" >&2
     exit 1
   fi
+  if grep -q -- '--no-snapshots' "$validator_script" &&
+    grep -q -- '--no-incremental-snapshots' "$validator_script"; then
+    echo "[ERROR] --no-snapshots conflicts with --no-incremental-snapshots in $validator_script" >&2
+    exit 1
+  fi
   if grep -q -- '--enable-accounts-disk-index\|--block-production-method central-scheduler\|--accounts-db-access-storages-method\|--accounts-db-cache-limit-mb' "$validator_script"; then
     echo "[ERROR] Deprecated validator flag found in $validator_script" >&2
     exit 1

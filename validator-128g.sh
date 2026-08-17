@@ -67,7 +67,6 @@ exec $VALIDATOR_CMD \
  --account-index-include-key AddressLookupTab1e1111111111111111111111111 \
  --no-snapshots \
  --no-snapshot-fetch \
- --no-incremental-snapshots \
  --maximum-full-snapshots-to-retain 1 \
  --maximum-incremental-snapshots-to-retain 1 \
  --minimal-snapshot-download-speed 10485760 \
