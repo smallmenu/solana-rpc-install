@@ -23,8 +23,8 @@
         "max_decoding_message_size": "536_870_912",
         "snapshot_plugin_channel_capacity": null,
         "snapshot_client_channel_capacity": "50_000_000",
-        "channel_capacity": "2_000_000",
-        "unary_concurrency_limit": 1000,
+        "channel_capacity": "500_000",
+        "unary_concurrency_limit": 200,
         "unary_disabled": false,
         "static_owner_allowlist": [
             "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
