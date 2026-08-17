@@ -66,7 +66,7 @@ if [[ "$LANG_SCRIPT" == "zh" ]]; then
   M_CHECKOUT="切换到标签 %s 并更新子模块..."
   M_SOURCE_READY="源码就绪 (commit: %s)"
   M_STEP4="编译 Jito Solana Validator..."
-  M_BUILD_TIME="这将需要 15-30 分钟，取决于 CPU 性能"
+  M_BUILD_TIME="启用原生 CPU 优化和 LTO，通常需要 30-90 分钟，取决于 CPU 性能"
   M_BUILDING="开始编译 validator..."
   M_BUILD_FAIL="编译失败: validator 未生成到 %s/bin (应有 agave-validator 或 solana-validator)"
   M_BUILD_DONE="编译完成"
@@ -126,7 +126,7 @@ else
   M_CHECKOUT="Checkout tag %s and update submodules..."
   M_SOURCE_READY="Source ready (commit: %s)"
   M_STEP4="Build Jito Solana Validator..."
-  M_BUILD_TIME="This may take 15-30 minutes depending on CPU"
+  M_BUILD_TIME="Native CPU optimization and LTO usually take 30-90 minutes depending on CPU"
   M_BUILDING="Building validator..."
   M_BUILD_FAIL="Build failed: no validator binary at %s/bin (expected agave-validator or solana-validator)"
   M_BUILD_DONE="Build complete"
@@ -293,8 +293,9 @@ echo ""
 echo "   - $M_BUILDING"
 CI_COMMIT=$(git rev-parse HEAD)
 export CI_COMMIT
+export RUSTFLAGS="${RUSTFLAGS:--C target-cpu=native}"
 mkdir -p "$SOLANA_INSTALL_DIR"
-scripts/cargo-install-all.sh --validator-only "$SOLANA_INSTALL_DIR"
+scripts/cargo-install-all.sh --release-with-lto --validator-only "$SOLANA_INSTALL_DIR"
 
 # Per jito-solana scripts/agave-build-lists.sh, AGAVE_BINS_VAL_OP includes agave-validator.
 # Check that first; fallback to solana-validator for older or alternate builds.

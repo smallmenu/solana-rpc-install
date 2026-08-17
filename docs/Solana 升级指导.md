@@ -269,6 +269,6 @@ bash 3-start.sh
 
 安装脚本会在 `/root/sol/bin/yellowstone-backups/<timestamp>-<random>/` 备份原插件和配置，并保留已有 `/root/sol/bin/yellowstone-config.json`。首次安装或现有配置没有 allowlist 时，需要在启动前手工合并生产 `static_owner_allowlist`。
 
-已对 `v4.2.1-jito` 源码核对 validator CLI。其 validator CLI 核心文件与 `v4.2.0-jito` 完全一致：Linux 默认尝试启用 XDP，`--no-xdp` 用于回退到 UDP sockets，同时 `--allow-private-addr` 明确要求 `--no-xdp`。因此四个 validator tier 脚本继续保留 `--no-xdp`，其余已有 CLI 参数未发现需要删除或改名。
+已对 `v4.2.1-jito` 源码核对 validator CLI。Linux 默认尝试启用 XDP，`--no-xdp` 用于回退到 UDP sockets，同时 `--allow-private-addr` 明确要求 `--no-xdp`，因此四个 validator tier 脚本继续保留 `--no-xdp`。AccountsDB 已删除无效的 `--accounts-db-access-storages-method file`，并将废弃的 `--accounts-db-cache-limit-mb 8192` 更新为 `--accounts-db-write-cache-limit 8192MB`。
 
 截至本次记录，生产环境以 `v15.0.1+solana.4.2.0` 为 upstream 基线，在 `sm-v15.1.0-v4.2.0` 分支保留 `static_owner_allowlist` 定制并自行构建。安装脚本只使用固定路径中的自构建产物，不使用官方 release 二进制，也不检查 SHA256。

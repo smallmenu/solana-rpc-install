@@ -76,8 +76,7 @@ exec $VALIDATOR_CMD \
  --wal-recovery-mode skip_any_corrupted_record \
  --enable-rpc-transaction-history \
  --accounts-index-limit minimal \
- --accounts-db-access-storages-method file \
- --accounts-db-cache-limit-mb 8192 \
+ --accounts-db-write-cache-limit 8192MB \
  --accounts-index-scan-results-limit-mb 8192 \
  --accounts-db-ancient-append-vecs 300000 \
  --disable-banking-trace \

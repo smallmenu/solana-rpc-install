@@ -90,7 +90,7 @@ bash 1-prepare.sh
 # (可选) 验证挂载配置
 bash verify-mounts.sh
 
-# 步骤 2: 从源码构建 Jito Solana (15-30 分钟)
+# 步骤 2: 使用原生 CPU 优化和 LTO 从源码构建 Jito Solana (30-90 分钟)
 bash 2-install-jito-validator.sh
 # 直接回车安装 v4.2.1，或输入指定版本 (例如: v4.2.1-rc.1)
 # 支持 stable、rc、beta 等 Jito 标签
@@ -211,7 +211,7 @@ bash /root/performance-monitor.sh snapshot
 ### 🚀 部署特性
 
 - 📦 **源码编译安装**:
-  - 🔧 从官方 GitHub 构建 Jito Solana (15-30 分钟)
+  - 🔧 使用原生 CPU 优化和 LTO 从官方 GitHub 构建 Jito Solana (30-90 分钟)
   - ✅ 完整的 validator 二进制文件和完整 MEV 支持
   - 🎯 100% 符合 Jito Foundation 官方标准
 - 🧠 **智能配置选择**: 自动检测系统 RAM 并选择最优 validator 配置
@@ -250,7 +250,7 @@ bash /root/performance-monitor.sh snapshot
 │  Jito Solana 验证者 (v4.2.x)                            │
 │  ├─ 安装方式: 从 GitHub 源码编译                         │
 │  │  • agave-validator 完整 MEV 支持                     │
-│  │  • 100% 符合 Jito Foundation 标准 (15-30 分钟)      │
+│  │  • 原生 CPU + LTO 优化构建 (30-90 分钟)              │
 │  ├─ Yellowstone gRPC v15.x (Solana 4.2)                │
 │  ├─ RPC HTTP/WebSocket (端口 8899/8900)                │
 │  └─ 账户 & 账本 (优化的 RocksDB)                        │

@@ -90,7 +90,7 @@ bash 1-prepare.sh
 # (Optional) Verify mount configuration
 bash verify-mounts.sh
 
-# Step 2: Build Jito Solana from source (15-30 minutes)
+# Step 2: Build Jito Solana from source with native CPU optimization and LTO (30-90 minutes)
 bash 2-install-jito-validator.sh
 # Press Enter to install v4.2.1, or enter a specific version (e.g., v4.2.1-rc.1)
 # Supports stable, rc, and beta Jito tags
@@ -210,7 +210,7 @@ All configurations are based on **proven production deployments** with thousands
 ### 🚀 Deployment Features
 
 - 📦 **Source Compilation Installation**:
-  - 🔧 Jito Solana from official GitHub (15-30 min)
+  - 🔧 Jito Solana from official GitHub with native CPU optimization and LTO (30-90 min)
   - ✅ Complete validator binary with full MEV support
   - 🎯 100% compliant with Jito Foundation standards
 - 🧠 **Intelligent Configuration Selection**: Auto-detects system RAM and selects optimal validator configuration
@@ -249,7 +249,7 @@ All configurations are based on **proven production deployments** with thousands
 │  Jito Solana Validator (v4.2.x)                         │
 │  ├─ Installation: Source compilation from GitHub        │
 │  │  • agave-validator with full MEV support             │
-│  │  • 100% Jito Foundation compliant (15-30 min)        │
+│  │  • Native CPU + LTO optimized build (30-90 min)       │
 │  ├─ Yellowstone gRPC v15.x (Solana 4.2)                │
 │  ├─ RPC HTTP/WebSocket (Port 8899/8900)                 │
 │  └─ Accounts & Ledger (Optimized RocksDB)               │

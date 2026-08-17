@@ -75,8 +75,7 @@ validator_help=$("$VALIDATOR_CMD" --help 2>&1 || true)
 required_validator_flags=(
   --accounts-index-path
   --accounts-index-limit
-  --accounts-db-access-storages-method
-  --accounts-db-cache-limit-mb
+  --accounts-db-write-cache-limit
   --accounts-index-scan-results-limit-mb
   --accounts-shrink-ratio
   --accounts-index-bins
@@ -94,12 +93,16 @@ for validator_script in "$SCRIPT_DIR"/validator-{128g,192g,256g,512g}.sh; do
     echo "[ERROR] Missing --accounts-index-limit minimal in $validator_script" >&2
     exit 1
   fi
+  if ! grep -q -- '--accounts-db-write-cache-limit' "$validator_script"; then
+    echo "[ERROR] Missing --accounts-db-write-cache-limit in $validator_script" >&2
+    exit 1
+  fi
   if grep -q -- '--allow-private-addr' "$validator_script" &&
     ! grep -q -- '--no-xdp' "$validator_script"; then
     echo "[ERROR] --allow-private-addr requires --no-xdp in $validator_script" >&2
     exit 1
   fi
-  if grep -q -- '--enable-accounts-disk-index\|--block-production-method central-scheduler' "$validator_script"; then
+  if grep -q -- '--enable-accounts-disk-index\|--block-production-method central-scheduler\|--accounts-db-access-storages-method\|--accounts-db-cache-limit-mb' "$validator_script"; then
     echo "[ERROR] Deprecated validator flag found in $validator_script" >&2
     exit 1
   fi
