@@ -77,7 +77,7 @@ exec $VALIDATOR_CMD \
  --accounts-index-limit 25GB \
  --accounts-db-write-cache-limit 8192MB \
  --accounts-index-scan-results-limit-mb 8192 \
- --accounts-db-ancient-append-vecs 300000 \
+ --accounts-db-ancient-append-vecs 250000 \
  --disable-banking-trace \
  --accounts-shrink-ratio 0.90 --accounts-index-bins 2048 \
  --health-check-slot-distance 150 \
