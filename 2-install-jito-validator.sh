@@ -28,11 +28,11 @@ GEYSER_CFG="$BIN/yellowstone-config.json"
 SERVICE_NAME=${SERVICE_NAME:-sol}
 SOLANA_INSTALL_DIR="/usr/local/solana"
 BUILD_DIR="/tmp/jito-solana-build"
-DEFAULT_SOLANA_VERSION="v4.2.1"
+DEFAULT_SOLANA_VERSION="v4.3.0"
 
 # Production Yellowstone artifact. This custom build provides static_owner_allowlist.
 YELLOWSTONE_GEYSER_SOURCE="/data/yellowstone-grpc/target/release/libyellowstone_grpc_geyser.so"
-YELLOWSTONE_CUSTOM_BUILD_REF="sm-v15.1.0-v4.2.0@58d94ff"
+YELLOWSTONE_CUSTOM_BUILD_REF="sm-v16.0.0-v4.3.0@9730e4b"
 YELLOWSTONE_GEYSER_DIR="$BIN/yellowstone-grpc-geyser-release"
 YELLOWSTONE_GEYSER_LIB_DIR="$YELLOWSTONE_GEYSER_DIR/lib"
 YELLOWSTONE_GEYSER_LIB="$YELLOWSTONE_GEYSER_LIB_DIR/libyellowstone_grpc_geyser.so"
