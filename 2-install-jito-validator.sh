@@ -434,6 +434,7 @@ cp -f "$SCRIPT_DIR/restart_node.sh"      /root/restart_node.sh
 cp -f "$SCRIPT_DIR/get_health.sh"        /root/get_health.sh
 cp -f "$SCRIPT_DIR/catchup.sh"           /root/catchup.sh
 cp -f "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+cp -f "$SCRIPT_DIR/accounts-storage-report.sh" /root/accounts-storage-report.sh
 cp -f "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
 cp -f "$SCRIPT_DIR/update-runtime.sh" /root/update-runtime.sh
 logrotate_tmp=$(mktemp)

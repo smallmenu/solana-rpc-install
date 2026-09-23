@@ -57,6 +57,7 @@
 | `validator.sh` | 根据 128GB、192GB、256GB、512GB+ 内存自动选择 validator 配置 |
 | `yellowstone-config.json` | 经过生产测试的 Yellowstone gRPC Geyser 配置 |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | 查看节点健康状态、内存、性能和同步进度 |
+| `accounts-storage-report.sh` | 手动扫描 AccountsDB 磁盘占用，并按 ancient eligible 与 modern 存储文件分类 |
 
 ## 🎯 系统要求
 
@@ -175,6 +176,9 @@ journalctl -u sol -f
 
 # 性能监控
 bash /root/performance-monitor.sh snapshot
+
+# AccountsDB 磁盘占用分析（手动运行，会扫描 accounts 目录）
+bash /root/accounts-storage-report.sh
 
 # 健康检查 (30分钟后可用)
 /root/get_health.sh

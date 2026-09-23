@@ -32,6 +32,7 @@ required_files=(
   validator-512g.sh
   select-validator.sh
   performance-monitor.sh
+  accounts-storage-report.sh
   solana-failure-diagnostics.sh
   solana-monitor.service
   logrotate-solana-rpc
@@ -140,6 +141,8 @@ for file in validator.sh validator-128g.sh validator-192g.sh validator-256g.sh v
   [[ -f "$BIN/$file" ]] && cp -a "$BIN/$file" "$backup_dir/bin/$file"
 done
 [[ -f /root/performance-monitor.sh ]] && cp -a /root/performance-monitor.sh "$backup_dir/performance-monitor.sh"
+[[ -f /root/accounts-storage-report.sh ]] && \
+  cp -a /root/accounts-storage-report.sh "$backup_dir/accounts-storage-report.sh"
 [[ -f /root/solana-failure-diagnostics.sh ]] && \
   cp -a /root/solana-failure-diagnostics.sh "$backup_dir/solana-failure-diagnostics.sh"
 [[ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]] && \
@@ -157,6 +160,7 @@ install -m 0755 "$SCRIPT_DIR/validator-256g.sh" "$BIN/validator-256g.sh"
 install -m 0755 "$SCRIPT_DIR/validator-512g.sh" "$BIN/validator-512g.sh"
 install -m 0755 "$SCRIPT_DIR/select-validator.sh" "$BIN/select-validator.sh"
 install -m 0755 "$SCRIPT_DIR/performance-monitor.sh" /root/performance-monitor.sh
+install -m 0755 "$SCRIPT_DIR/accounts-storage-report.sh" /root/accounts-storage-report.sh
 install -m 0755 "$SCRIPT_DIR/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
 install -m 0644 "$SCRIPT_DIR/sol.service" "/etc/systemd/system/${SERVICE_NAME}.service"
 install -m 0644 "$SCRIPT_DIR/solana-monitor.service" /etc/systemd/system/solana-monitor.service
@@ -206,6 +210,8 @@ if [[ "$RESTART" == true ]]; then
     done
     [[ -f "$backup_dir/performance-monitor.sh" ]] && \
       install -m 0755 "$backup_dir/performance-monitor.sh" /root/performance-monitor.sh
+    [[ -f "$backup_dir/accounts-storage-report.sh" ]] && \
+      install -m 0755 "$backup_dir/accounts-storage-report.sh" /root/accounts-storage-report.sh
     [[ -f "$backup_dir/solana-failure-diagnostics.sh" ]] && \
       install -m 0755 "$backup_dir/solana-failure-diagnostics.sh" /root/solana-failure-diagnostics.sh
     [[ -f "$backup_dir/sol.service" ]] && \

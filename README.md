@@ -57,6 +57,7 @@ It is built for operators who need a practical Solana mainnet RPC deployment gui
 | `validator.sh` | Auto-select the right validator profile for 128GB, 192GB, 256GB, or 512GB+ RAM |
 | `yellowstone-config.json` | Production-tested Yellowstone gRPC Geyser configuration |
 | `performance-monitor.sh`, `get_health.sh`, `catchup.sh` | Monitor node health, memory, performance, and sync progress |
+| `accounts-storage-report.sh` | Manually scan and classify AccountsDB disk usage into ancient-eligible and modern storage files |
 
 ## 🎯 System Requirements
 
@@ -174,6 +175,9 @@ journalctl -u sol -f
 
 # Performance monitoring
 bash /root/performance-monitor.sh snapshot
+
+# AccountsDB disk usage report (manual full scan)
+bash /root/accounts-storage-report.sh
 
 # Health check (available after 30 minutes)
 /root/get_health.sh
